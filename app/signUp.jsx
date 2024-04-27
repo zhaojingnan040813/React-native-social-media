@@ -3,24 +3,25 @@ import React, { useRef, useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { StatusBar } from 'expo-status-bar';
-import { Feather, Ionicons, Octicons, SimpleLineIcons } from '@expo/vector-icons';
+import { Feather, FontAwesome, Ionicons, Octicons, SimpleLineIcons } from '@expo/vector-icons';
 import { hp, wp } from '../helpers/common';
 import { theme } from '../constants/theme';
 import BackButton from '../components/BackButton';
 import { useRouter } from 'expo-router';
 import Button from '../components/Button';
 
-const Login = () => {
+const SignUp = () => {
 
   const emailRef = useRef("");
+  const nameRef = useRef("");
   const passwordRef = useRef("");
   const [loading, setLoading] = useState(false);
   
   const router = useRouter();
 
   const onSubmit = async ()=>{
-    if(!emailRef.current || !passwordRef.current){
-        Alert.alert('Login', "Please fill all the fields!");
+    if(!nameRef.current || !emailRef.current || !passwordRef.current){
+        Alert.alert('Sign up', "Please fill all the fields!");
         return;
     }
 
@@ -41,15 +42,24 @@ const Login = () => {
 
         {/* welcome */}
         <View>
-          <Text style={styles.welcomeText}>Hey, </Text>
-          <Text style={styles.welcomeText}>Welcome Back </Text>
+          <Text style={styles.welcomeText}>Lets's </Text>
+          <Text style={styles.welcomeText}>Get Started</Text>
         </View>
 
         {/* form */}
         <View style={styles.form}>
           <Text style={{fontSize: hp(1.5), color: theme.colors.text}}>
-            Please login to continue
+            Please fill the details to create an account
           </Text>
+          <View style={styles.input}>
+            <FontAwesome name="user-o" size={25} color={theme.colors.textLight} />
+            <TextInput
+              style={{flex: 1}}
+              placeholder='Enter your name'
+              placeholderTextColor={theme.colors.textLight}
+              onChangeText={value=> nameRef.current=value}
+            />
+          </View>
           <View style={styles.input}>
             <Ionicons name="mail-outline" size={25} color={theme.colors.textLight} />
             <TextInput
@@ -69,20 +79,17 @@ const Login = () => {
               onChangeText={value=> passwordRef.current=value}
             />
           </View>
-          <Text style={styles.forgotPassword}>
-            Forgot Password?
-          </Text>
 
           {/* button */}
-          <Button title="Login" onPress={onSubmit} />
+          <Button title="Sign up" onPress={onSubmit} />
         </View>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            Dont't have an account? 
+            Already have an account!
           </Text>
-          <Pressable onPress={()=> router.navigate('/signUp')}>
-            <Text style={[styles.footerText, {color: theme.colors.primaryDark, fontWeight: theme.fonts.semibold}]}>Sign up</Text>
+          <Pressable onPress={()=> router.navigate('/login')}>
+            <Text style={[styles.footerText, {color: theme.colors.primaryDark, fontWeight: theme.fonts.semibold}]}>Login</Text>
           </Pressable>
         </View>
         
@@ -152,4 +159,4 @@ const styles = StyleSheet.create({
   }
 })
 
-export default Login
+export default SignUp;
