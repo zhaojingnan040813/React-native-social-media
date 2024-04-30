@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native'
+import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native'
 import React from 'react'
 import { hp } from '../helpers/common'
 import { theme } from '../constants/theme'
@@ -8,26 +8,34 @@ const Button = ({
     textStyle,
     title='',
     onPress=()=>{},
+    loading=false,
     hasShadow=true,
 }) => {
 
     const shadowStyle = {
-        shadowColor: theme.colors.primary,
+        shadowColor: theme.colors.textLight,
         shadowOffset: {width: 0, height: 10},
         shadowOpacity: 0.3,
         shadowRadius: 10
     }
-  return (
-    <Pressable onPress={onPress} style={[styles.button, buttonStyle, hasShadow && shadowStyle]}>
-      <Text style={[styles.text, textStyle]}>{title}</Text>
-    </Pressable>
-  )
+    if(loading){
+        return (
+            <View style={[styles.button, buttonStyle, hasShadow && shadowStyle]}>
+                <ActivityIndicator size="small" color="white" />
+            </View>
+        )
+    }
+    return (
+        <Pressable onPress={onPress} style={[styles.button, buttonStyle, hasShadow && shadowStyle]}>
+            <Text style={[styles.text, textStyle]}>{title}</Text>
+        </Pressable>
+    )
 }
 
 const styles = StyleSheet.create({
     button: {
         backgroundColor: theme.colors.primary,
-        padding: 15,
+        height: hp(6.5),
         justifyContent: 'center',
         alignItems: 'center',
         borderRadius: 50,

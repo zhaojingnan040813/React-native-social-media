@@ -9,6 +9,7 @@ import { theme } from '../constants/theme';
 import BackButton from '../components/BackButton';
 import { useRouter } from 'expo-router';
 import Button from '../components/Button';
+import { supabase } from '../lib/supabase';
 
 const SignUp = () => {
 
@@ -20,16 +21,34 @@ const SignUp = () => {
   const router = useRouter();
 
   const onSubmit = async ()=>{
-    if(!nameRef.current || !emailRef.current || !passwordRef.current){
-        Alert.alert('Sign up', "Please fill all the fields!");
-        return;
+        if(!nameRef.current || !emailRef.current || !passwordRef.current){
+            Alert.alert('Sign up', "Please fill all the fields!");
+            return;
+        }
+
+        let name = nameRef.current.trim();
+        let email = emailRef.current.trim();
+        let password = passwordRef.current.trim();
+
+        const {
+            data: { session },
+            error,
+        } = await supabase.auth.signUp({
+            email: email,
+            password: password,
+            options: {
+                data: {
+                    name
+                },
+            },
+        });
+
+        console.log('session: ', session);
+        console.log('error: ', error);
+    
+        if (error) Alert.alert(error.message)
+        setLoading(false)
     }
-
-    console.log('email: ', emailRef.current);
-    console.log('password: ', passwordRef.current);
-
-    // setLoading(true);
-}
 
   return (
     <ScreenWrapper bg={'white'}>
