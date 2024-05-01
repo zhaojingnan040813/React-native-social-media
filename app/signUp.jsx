@@ -30,6 +30,7 @@ const SignUp = () => {
         let email = emailRef.current.trim();
         let password = passwordRef.current.trim();
 
+        setLoading(true);
         const {
             data: { session },
             error,
@@ -43,10 +44,10 @@ const SignUp = () => {
             },
         });
 
-        console.log('session: ', session);
-        console.log('error: ', error);
+        // console.log('session: ', session);
+        // console.log('error: ', error);
     
-        if (error) Alert.alert(error.message)
+        if (error) Alert.alert('Sign up', error.message)
         setLoading(false)
     }
 
@@ -100,7 +101,7 @@ const SignUp = () => {
           </View>
 
           {/* button */}
-          <Button title="Sign up" onPress={onSubmit} />
+          <Button title="Sign up" loading={loading} onPress={onSubmit} />
         </View>
 
         <View style={styles.footer}>

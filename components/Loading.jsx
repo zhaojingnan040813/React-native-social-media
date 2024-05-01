@@ -1,11 +1,10 @@
-import { View, Text } from 'react-native'
+import { View, Text, ActivityIndicator } from 'react-native'
 import React from 'react'
-import { ActivityIndicator } from 'react-native-web'
 import { theme } from '../constants/theme'
 
-const Loading = ({size="small", style}) => {
+const Loading = ({size="large", color='white'}) => {
   return (
-    <View style={style}>
+    <View style={{justifyContent: 'center', alignItems: 'center'}}>
       <ActivityIndicator size={size} color={theme.colors.primary} />
     </View>
   )

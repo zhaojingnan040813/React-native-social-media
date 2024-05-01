@@ -9,6 +9,7 @@ import { theme } from '../constants/theme';
 import BackButton from '../components/BackButton';
 import { useRouter } from 'expo-router';
 import Button from '../components/Button';
+import { supabase } from '../lib/supabase';
 
 const Login = () => {
 
@@ -24,8 +25,17 @@ const Login = () => {
         return;
     }
 
-    console.log('email: ', emailRef.current);
-    console.log('password: ', passwordRef.current);
+    let email = emailRef.current.trim();
+    let password = passwordRef.current.trim();
+
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: password,
+    })
+
+    if (error) Alert.alert('Login', error.message)
+    setLoading(false)
 
     // setLoading(true);
 }
@@ -74,7 +84,7 @@ const Login = () => {
           </Text>
 
           {/* button */}
-          <Button title="Login" onPress={onSubmit} />
+          <Button title="Login" loading={loading} onPress={onSubmit} />
         </View>
 
         <View style={styles.footer}>

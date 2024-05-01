@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-nati
 import React from 'react'
 import { hp } from '../helpers/common'
 import { theme } from '../constants/theme'
+import Loading from './Loading'
 
 const Button = ({
     buttonStyle,
@@ -20,9 +21,10 @@ const Button = ({
     }
     if(loading){
         return (
-            <View style={[styles.button, buttonStyle, hasShadow && shadowStyle]}>
-                <ActivityIndicator size="small" color="white" />
+            <View style={[styles.button, buttonStyle, {backgroundColor: 'white'}]}>
+                <Loading />
             </View>
+
         )
     }
     return (
