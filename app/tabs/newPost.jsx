@@ -2,12 +2,12 @@ import { View, Text } from 'react-native'
 import React from 'react'
 import ScreenWrapper from '../../components/ScreenWrapper'
 
-const Profile = () => {
+const NewPost = () => {
   return (
     <ScreenWrapper>
-      <Text>Profile</Text>
+      <Text>NewPost</Text>
     </ScreenWrapper>
   )
 }
 
-export default Profile
+export default NewPost
