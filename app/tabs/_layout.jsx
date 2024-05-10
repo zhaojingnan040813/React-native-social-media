@@ -22,8 +22,8 @@ const _layout = () => {
           title: "Home",
           tabBarIcon: ({focused})=>{
             return (
-              <View style={[styles.iconStyle, focused && {backgroundColor: 'rgba(0,0,0,0.08)'}]}>
-                <Entypo name="home" size={28} color={focused? theme.colors.dark: theme.colors.textLight} />
+              <View style={[styles.iconStyle]}>
+                <Entypo name="home" size={29} color={focused? theme.colors.primary: theme.colors.textLight} />
               </View>
             )
           }
@@ -35,8 +35,8 @@ const _layout = () => {
           title: "Explore",
           tabBarIcon: ({focused})=>{
             return (
-              <View style={[styles.iconStyle, focused && {backgroundColor: 'rgba(0,0,0,0.08)'}]}>
-                <FontAwesome name="search" size={28} color={focused? theme.colors.dark: theme.colors.textLight} />
+              <View style={[styles.iconStyle]}>
+                <FontAwesome name="search" size={29} color={focused? theme.colors.primary: theme.colors.textLight} />
               </View>
             )
           }
@@ -55,7 +55,7 @@ const _layout = () => {
                 shadowOpacity: 0.4,
                 shadowRadius: 5
               }]}>
-                <AntDesign name="pluscircle" size={48} color={theme.colors.primary} />
+                <AntDesign name="pluscircle" size={45} color={focused? theme.colors.primary: theme.colors.textLight} />
                 <View style={[styles.bar]} />
               </View>
             )
@@ -68,8 +68,8 @@ const _layout = () => {
           title: "Notifications",
           tabBarIcon: ({focused})=>{
             return (
-              <View style={[styles.iconStyle, focused && {backgroundColor: 'rgba(0,0,0,0.08)'}]}>
-                <Ionicons name="heart" size={28} color={focused? theme.colors.dark: theme.colors.textLight} />
+              <View style={[styles.iconStyle]}>
+                <Ionicons name="heart" size={29} color={focused? theme.colors.primary: theme.colors.textLight} />
               </View>
             )
           }
@@ -81,8 +81,8 @@ const _layout = () => {
           title: "Profile",
           tabBarIcon: ({focused})=>{
             return (
-              <View style={[styles.iconStyle, focused && {backgroundColor: 'rgba(0,0,0,0.08)'}]}>
-                <FontAwesome name="user" size={28} color={focused? theme.colors.dark: theme.colors.textLight} />
+              <View style={[styles.iconStyle]}>
+                <FontAwesome name="user" size={29} color={focused? theme.colors.primary: theme.colors.textLight} />
               </View>
             )
           }
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     position: 'absolute', 
     overflow: 'visible', 
     opacity: 0.9, 
-    top: -7, 
+    top: -5, 
     backgroundColor: 'white', 
     borderRadius: 100
   }
