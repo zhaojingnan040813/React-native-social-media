@@ -37,10 +37,11 @@ const Button = ({
 const styles = StyleSheet.create({
     button: {
         backgroundColor: theme.colors.primary,
-        height: hp(6.5),
+        height: hp(6.6),
         justifyContent: 'center',
         alignItems: 'center',
-        borderRadius: 50,
+        borderCurve: 'continuous',
+        borderRadius: theme.radius.xl,
     },
     text: {
         fontSize: hp(2.5),

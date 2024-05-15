@@ -77,19 +77,7 @@ const styles = StyleSheet.create({
     gap: 30,
     width: '100%',
   },
-  button: {
-    padding: 15,
-    paddingHorizontal: 100,
-    backgroundColor: theme.colors.primary,
-    borderRadius: 100,
-    justifyContent: 'center',
-    alignItems: 'center',
-  }, 
-  buttonText: {
-    color: 'white',
-    fontWeight: theme.fonts.bold,
-    fontSize: hp(2),
-  },
+ 
   bottomTextContainer:{
     flexDirection: 'row',
     justifyContent: 'center',

@@ -44,11 +44,7 @@ const MainLayout = ()=>{
             screenOptions={{
                 headerShown: false
             }}
-        >
-            <Stack.Screen
-                name="login"
-            />
-        </Stack>
+        />
     )
 }
 

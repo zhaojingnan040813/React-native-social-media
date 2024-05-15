@@ -1,28 +1,29 @@
-import { View, Text, StyleSheet, Image, ScrollView, Pressable } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 import React, { useState } from 'react'
 import { hp, wp } from '../../helpers/common'
 import { useAuth } from '../../contexts/AuthContext'
 import { theme } from '../../constants/theme'
 import { Feather, Ionicons, SimpleLineIcons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
+import { getUserImageSrc } from '../../services/imageService'
+import { Image } from 'expo-image';
+
 
 const Profile = () => {
   const {user} = useAuth();
   const router = useRouter();
-  const [profileModal, toggleProfileModal] = useState(false);
-  let imageSource = user.image? {uri: user.image}: require('../../assets/images/defaultUser.png');
-
+  // first do this
   
   return (
     // <ScreenWrapper>
-    <ScrollView style={{flex: 1}}> 
+    <ScrollView style={{flex: 1, backgroundColor:'white'}}> 
       <Image style={styles.headerShape} source={require('../../assets/images/headerShape.png')} />
       
       <View style={styles.container}>
         {/* header */}
         <View style={styles.header}>
-          <View style={styles.avatar}>
-            <Image source={imageSource} style={{width: '100%', height: '100%', borderRadius: 100}} />
+          <View style={styles.avatarContainer}>
+            <Image source={getUserImageSrc(user?.image)} style={styles.avatar} />
             <Pressable style={styles.editIcon} onPress={()=> router.push('/editProfile')}>
               <Feather name="edit-3" size={20} color={theme.colors.textLight} />
             </Pressable>
@@ -32,7 +33,7 @@ const Profile = () => {
           {/* username & address */}
           <View style={{alignItems: 'center', gap: 4}}>
             <Text style={styles.userName}> { user && user.name } </Text>
-            <Text style={styles.infoText}> USA, New york </Text>
+            <Text style={styles.infoText}> {user && user.address} </Text>
           </View>
 
           {/* email, phone */}
@@ -85,10 +86,17 @@ const styles = StyleSheet.create({
   header: {
     gap: 15,
   },
-  avatar: {
+  avatarContainer: {
     height: hp(12),
     width: hp(12),
     alignSelf: 'center'
+  },
+  avatar: {
+    width: '100%', 
+    height: '100%', 
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)'
   },
   editIcon: {
     position: 'absolute',

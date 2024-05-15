@@ -14,7 +14,7 @@ const styles = StyleSheet.create({
     button: {
         alignSelf: 'flex-start',
         padding: 10,
-        borderRadius: 50,
+        borderRadius: theme.radius.md,
         backgroundColor: 'rgba(0,0,0,0.07)'
     }
 })

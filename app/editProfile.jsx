@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Image, ScrollView, Pressable, TextInput, Alert } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { hp, wp } from '../helpers/common'
 import { useAuth } from '../contexts/AuthContext'
@@ -9,10 +9,13 @@ import ScreenWrapper from '../components/ScreenWrapper'
 import Button from '../components/Button'
 import BackButton from '../components/BackButton'
 import * as ImagePicker from 'expo-image-picker';
+import { updateUser } from '../services/userService'
+import { getProfeilImagePath, getUserImageSrc, uploadFile } from '../services/imageService'
+import { Image } from 'expo-image';
 
 
 const EditProfile = () => {
-  const {user: currentUser} = useAuth();
+  const {user: currentUser, setUserData} = useAuth();
   const router = useRouter();
   const [profileModal, toggleProfileModal] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -29,7 +32,7 @@ const EditProfile = () => {
         setUser({
             name: currentUser.name || '',
             phoneNumber: currentUser.phoneNumber || '',
-            image: user.image || null,
+            image: currentUser.image || null,
             address: currentUser.address || '',
             bio: currentUser.bio || '',
         });
@@ -45,29 +48,43 @@ const EditProfile = () => {
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.7,
+      base64: true
     });
 
-    console.log(result);
-
     if (!result.canceled) {
-      setUser({...user, image: result.assets[0].uri});
+      setUser({...user, image: result.assets[0]});
     }
   };
 
   const onSubmit = async ()=>{
-    let {name, phoneNumber, address, image, bio} = user;
+    let userData = {...user};
+    let {name, phoneNumber, address, image, bio} = userData;
     if(!name || !phoneNumber || !address || !image || !bio){
         Alert.alert('Profile', "Please fill all the fields");
         return;
+    }
+    
+    setLoading(true);
+    if(typeof image == 'object'){
+      let imageResult = await uploadFile(getProfeilImagePath(), image?.base64);
+      if(imageResult.success) userData.image = imageResult.data;
+      else userData.image = null;
+    }
+    
+    const res = await updateUser(currentUser?.id, userData);
+    setLoading(false);
+    if(res.success){
+      setUserData({...currentUser, ...userData});
+      router.back();
     }
 
     // good to go
   }
 
-  let imageSource = user.image? {uri: user.image}: require('../assets/images/defaultUser.png');
+  let imageSource = user.image && typeof user?.image == 'object'? user.image.uri: getUserImageSrc(user.image);
   
   return (
-    <ScreenWrapper>
+    <ScreenWrapper bg="white">
         <View style={styles.container}>
             <ScrollView style={{flex: 1}}>   
                 <View>
@@ -76,8 +93,8 @@ const EditProfile = () => {
                 <Text style={styles.editProfileText}>Edit Profile</Text>
                 {/* form */}
                 <View style={styles.form}>
-                    <View style={styles.avatar}>
-                        <Image source={imageSource} style={{width: '100%', height: '100%', borderRadius: 100}} />
+                    <View style={styles.avatarContainer}>
+                        <Image source={imageSource} style={styles.avatar} />
                         <Pressable style={styles.cameraIcon} onPress={onPickImage}>
                             <Feather name="camera" size={20} color={theme.colors.textLight} />
                         </Pressable>
@@ -144,10 +161,17 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: wp(4)
   },  
-  avatar: {
+  avatarContainer: {
     height: hp(14),
     width: hp(14),
     alignSelf: 'center'
+  },
+  avatar: {
+    width: '100%', 
+    height: '100%', 
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)'
   },
   cameraIcon: {
     position: 'absolute',
@@ -169,8 +193,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderWidth: 0.4,
     borderColor: theme.colors.text,
-    borderRadius: 100,
-    padding: 18,
+    borderRadius: theme.radius.xxl,
+    borderCurve: 'continuous',
+    padding: 17,
     paddingHorizontal: 20,
     gap: 15
   },
@@ -186,8 +211,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderWidth: 0.4,
     borderColor: theme.colors.text,
-    borderRadius: 25,
-    padding: 15,
+    borderRadius: theme.radius.xxl,
+    borderCurve: 'continuous',
+    padding: 10,
     height: hp(15),
     paddingHorizontal: 20,
     gap: 15

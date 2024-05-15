@@ -1,100 +1,101 @@
-import { View, Text, StyleSheet } from 'react-native'
-import React from 'react'
-import { Tabs } from 'expo-router'
+import { View, Text, StyleSheet, Pressable, Alert } from 'react-native'
+import React, { useState } from 'react'
+import { Tabs, useRouter } from 'expo-router'
 import { theme } from '../../constants/theme'
 import { hp, wp } from '../../helpers/common'
 import { AntDesign, Entypo, Feather, FontAwesome, Ionicons } from '@expo/vector-icons'
 
 const _layout = () => {
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: theme.colors.primaryDark,
-        tabBarStyle: styles.tabBarStyle,
-        tabBarLabelStyle: styles.tabBarLabelStyle,
-        tabBarItemStyle: styles.tabBarItemStyle
-      }}
-    >
-      <Tabs.Screen
-        name="home"
-        options={{
-          title: "Home",
-          tabBarIcon: ({focused})=>{
-            return (
-              <View style={[styles.iconStyle]}>
-                <Entypo name="home" size={29} color={focused? theme.colors.primary: theme.colors.textLight} />
-              </View>
-            )
-          }
+    <View style={{flex: 1}}>
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: theme.colors.primaryDark,
+          tabBarStyle: styles.tabBarStyle,
+          tabBarLabelStyle: styles.tabBarLabelStyle,
+          tabBarItemStyle: styles.tabBarItemStyle
         }}
-      />
-      <Tabs.Screen
-        name="search"
-        options={{
-          title: "Explore",
-          tabBarIcon: ({focused})=>{
-            return (
-              <View style={[styles.iconStyle]}>
-                <FontAwesome name="search" size={29} color={focused? theme.colors.primary: theme.colors.textLight} />
-              </View>
-            )
-          }
-        }}
-      />
-      <Tabs.Screen
-        name="newPost"
-        options={{
-          title: "New Post",
-          tabBarIcon: ({focused})=>{
-            return (
-              <View style={[styles.plusIcon, focused && {
-                shadowColor: theme.colors.textLight,
-                opacity: 1,
-                shadowOffset: {width: 0, height: 4},
-                shadowOpacity: 0.4,
-                shadowRadius: 5
-              }]}>
-                <AntDesign name="pluscircle" size={45} color={focused? theme.colors.primary: theme.colors.textLight} />
-                <View style={[styles.bar]} />
-              </View>
-            )
-          }
-        }}
-      />
-      <Tabs.Screen
-        name="notifications"
-        options={{
-          title: "Notifications",
-          tabBarIcon: ({focused})=>{
-            return (
-              <View style={[styles.iconStyle]}>
-                <Ionicons name="heart" size={29} color={focused? theme.colors.primary: theme.colors.textLight} />
-              </View>
-            )
-          }
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({focused})=>{
-            return (
-              <View style={[styles.iconStyle]}>
-                <FontAwesome name="user" size={29} color={focused? theme.colors.primary: theme.colors.textLight} />
-              </View>
-            )
-          }
-        }}
-      />
-    </Tabs>
+      >
+        <Tabs.Screen
+          name="home"
+          options={{
+            title: "Home",
+            tabBarIcon: ({focused})=>{
+              return (
+                <View style={[styles.iconStyle]}>
+                  <Entypo name="home" size={29} color={focused? theme.colors.primary: theme.colors.textLight} />
+                </View>
+              )
+            }
+          }}
+        />
+        <Tabs.Screen
+          name="search"
+          options={{
+            title: "Explore",
+            tabBarIcon: ({focused})=>{
+              return (
+                <View style={[styles.iconStyle]}>
+                  <FontAwesome name="search" size={29} color={focused? theme.colors.primary: theme.colors.textLight} />
+                </View>
+              )
+            }
+          }}
+        />
+        <Tabs.Screen
+          name="newPost"
+          options={{
+            title: "New Post",
+            tabBarIcon: ({focused})=>{
+              return (
+                <View style={[styles.plusIcon, focused && {
+                  shadowColor: theme.colors.textLight,
+                  opacity: 1,
+                  shadowOffset: {width: 0, height: 4},
+                  shadowOpacity: 0.4,
+                  shadowRadius: 5
+                }]}>
+                  <AntDesign name="pluscircle" size={45} color={focused? theme.colors.primary: theme.colors.textLight} />
+                </View>
+              )
+            }
+          }}
+        />
+        <Tabs.Screen
+          name="notifications"
+          options={{
+            title: "Notifications",
+            tabBarIcon: ({focused})=>{
+              return (
+                <View style={[styles.iconStyle]}>
+                  <Ionicons name="heart" size={29} color={focused? theme.colors.primary: theme.colors.textLight} />
+                </View>
+              )
+            }
+          }}
+        />
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: "Profile",
+            tabBarIcon: ({focused})=>{
+              return (
+                <View style={[styles.iconStyle]}>
+                  <FontAwesome name="user" size={29} color={focused? theme.colors.primary: theme.colors.textLight} />
+                </View>
+              )
+            }
+          }}
+        />
+      </Tabs>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
   tabBarStyle: {
-    borderRadius: 100,
+    borderRadius: theme.radius.xxl*1.2,
     borderCurve: 'continuous',
     position: 'absolute',
     bottom: 25,
@@ -104,9 +105,9 @@ const styles = StyleSheet.create({
     marginHorizontal: wp(4),
     backgroundColor: 'white',
     shadowColor: theme.colors.textLight,
-    shadowOffset: {width: 0, height: 10},
-    shadowOpacity: 0.2,
-    shadowRadius: 10
+    shadowOffset: {width: 0, height: 8},
+    shadowOpacity: 0.3,
+    shadowRadius: 8
 
   },
   tabBarLabelStyle: {

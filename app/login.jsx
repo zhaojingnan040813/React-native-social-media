@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderWidth: 0.4,
     borderColor: theme.colors.text,
-    borderRadius: 100,
+    borderRadius: theme.radius.xxl,
     padding: 18,
     paddingHorizontal: 20,
     gap: 15
@@ -130,24 +130,6 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     fontWeight: theme.fonts.semibold,
     color: theme.colors.text
-  },
-  loginButton: {
-    backgroundColor: theme.colors.primary,
-    padding: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 50,
-    // 
-    shadowColor: theme.colors.primary,
-    shadowOffset: {width: 0, height: 5},
-    shadowOpacity: 0.4,
-    shadowRadius: 5
-  },
-  loginText: {
-    fontSize: hp(2.1),
-    color: 'white',
-    fontWeight: theme.fonts.bold,
-    letterSpacing: 0.5
   },
   footer:{
     flexDirection: 'row',
