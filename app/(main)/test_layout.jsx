@@ -1,11 +1,14 @@
 import { View, Text, StyleSheet, Pressable, Alert } from 'react-native'
 import React, { useState } from 'react'
-import { Tabs, useRouter } from 'expo-router'
+import { Stack, Tabs, useRouter } from 'expo-router'
 import { theme } from '../../constants/theme'
 import { hp, wp } from '../../helpers/common'
 import { AntDesign, Entypo, Feather, FontAwesome, Ionicons } from '@expo/vector-icons'
 
 const _layout = () => {
+  return (
+    <Stack />
+  );
   return (
     <View style={{flex: 1}}>
       <Tabs
@@ -46,7 +49,8 @@ const _layout = () => {
         <Tabs.Screen
           name="newPost"
           options={{
-            title: "New Post",
+            title: "Create Post",
+            // headerShown: true,
             tabBarIcon: ({focused})=>{
               return (
                 <View style={[styles.plusIcon, focused && {

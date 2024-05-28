@@ -10,6 +10,7 @@ import BackButton from '../components/BackButton';
 import { useRouter } from 'expo-router';
 import Button from '../components/Button';
 import { supabase } from '../lib/supabase';
+import Icon from '../assets/icons';
 
 const SignUp = () => {
 
@@ -72,7 +73,7 @@ const SignUp = () => {
             Please fill the details to create an account
           </Text>
           <View style={styles.input}>
-            <FontAwesome name="user-o" size={25} color={theme.colors.textLight} />
+            <Icon name="user" size={26} strokeWidth={1.6} />
             <TextInput
               style={{flex: 1}}
               placeholder='Enter your name'
@@ -81,7 +82,7 @@ const SignUp = () => {
             />
           </View>
           <View style={styles.input}>
-            <Ionicons name="mail-outline" size={25} color={theme.colors.textLight} />
+            <Icon name="mail" size={26} strokeWidth={1.6} />
             <TextInput
               style={{flex: 1}}
               placeholder='Enter your email'
@@ -90,7 +91,7 @@ const SignUp = () => {
             />
           </View>
           <View style={styles.input}>
-            <SimpleLineIcons name="lock" size={25} color={theme.colors.textLight} />
+            <Icon name="lock" size={26} strokeWidth={1.6} />
             <TextInput 
               style={{flex: 1}}
               secureTextEntry

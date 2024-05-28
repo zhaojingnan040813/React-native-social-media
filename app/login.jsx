@@ -10,6 +10,7 @@ import BackButton from '../components/BackButton';
 import { useRouter } from 'expo-router';
 import Button from '../components/Button';
 import { supabase } from '../lib/supabase';
+import Icon from '../assets/icons';
 
 const Login = () => {
 
@@ -61,7 +62,7 @@ const Login = () => {
             Please login to continue
           </Text>
           <View style={styles.input}>
-            <Ionicons name="mail-outline" size={25} color={theme.colors.textLight} />
+            <Icon name="mail" size={26} strokeWidth={1.6} />
             <TextInput
               style={{flex: 1}}
               placeholder='Enter your email'
@@ -70,7 +71,7 @@ const Login = () => {
             />
           </View>
           <View style={styles.input}>
-            <SimpleLineIcons name="lock" size={25} color={theme.colors.textLight} />
+            <Icon name="lock" size={26} strokeWidth={1.6} />
             <TextInput 
               style={{flex: 1}}
               secureTextEntry
@@ -122,6 +123,7 @@ const styles = StyleSheet.create({
     borderWidth: 0.4,
     borderColor: theme.colors.text,
     borderRadius: theme.radius.xxl,
+    borderCurve: 'continuous',
     padding: 18,
     paddingHorizontal: 20,
     gap: 15

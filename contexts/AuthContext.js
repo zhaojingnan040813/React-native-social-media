@@ -12,7 +12,6 @@ export const AuthProvider = ({ children }) => {
   };
 
   const setUserData = (userData)=>{
-    console.log('setting user: ', userData);
     setUser({...userData});
   }
 

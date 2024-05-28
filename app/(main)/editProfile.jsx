@@ -1,17 +1,19 @@
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert } from 'react-native'
 import React, { useEffect, useState } from 'react'
-import { hp, wp } from '../helpers/common'
-import { useAuth } from '../contexts/AuthContext'
-import { theme } from '../constants/theme'
+import { hp, wp } from '../../helpers/common'
+import { useAuth } from '../../contexts/AuthContext'
+import { theme } from '../../constants/theme'
 import { Feather, FontAwesome, Ionicons, SimpleLineIcons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import ScreenWrapper from '../components/ScreenWrapper'
-import Button from '../components/Button'
-import BackButton from '../components/BackButton'
+import ScreenWrapper from '../../components/ScreenWrapper'
+import Button from '../../components/Button'
+import BackButton from '../../components/BackButton'
 import * as ImagePicker from 'expo-image-picker';
-import { updateUser } from '../services/userService'
-import { getProfeilImagePath, getUserImageSrc, uploadFile } from '../services/imageService'
+import { updateUser } from '../../services/userService'
+import { getFilePath, getUserImageSrc, uploadFile } from '../../services/imageService'
 import { Image } from 'expo-image';
+import Header from '../../components/Header'
+import Icon from '../../assets/icons'
 
 
 const EditProfile = () => {
@@ -66,10 +68,15 @@ const EditProfile = () => {
     
     setLoading(true);
     if(typeof image == 'object'){
-      let imageResult = await uploadFile(getProfeilImagePath(), image?.base64);
+      let imageResult = await uploadFile('profiles', image?.uri, true);
       if(imageResult.success) userData.image = imageResult.data;
       else userData.image = null;
     }
+    // if(typeof image == 'object'){
+    //   let imageResult = await uploadFile('profiles', image?.base64, true);
+    //   if(imageResult.success) userData.image = imageResult.data;
+    //   else userData.image = null;
+    // }
     
     const res = await updateUser(currentUser?.id, userData);
     setLoading(false);
@@ -87,23 +94,22 @@ const EditProfile = () => {
     <ScreenWrapper bg="white">
         <View style={styles.container}>
             <ScrollView style={{flex: 1}}>   
-                <View>
-                    <BackButton router={router} />
-                </View> 
-                <Text style={styles.editProfileText}>Edit Profile</Text>
+                <Header title="Edit Profile" />
+               
                 {/* form */}
                 <View style={styles.form}>
                     <View style={styles.avatarContainer}>
                         <Image source={imageSource} style={styles.avatar} />
                         <Pressable style={styles.cameraIcon} onPress={onPickImage}>
-                            <Feather name="camera" size={20} color={theme.colors.textLight} />
+                            {/* <Feather name="camera" size={20} /> */}
+                            <Icon name="camera" strokeWidth={2.5} size={20} />
                         </Pressable>
                     </View>
                     <Text style={{fontSize: hp(1.5), color: theme.colors.text}}>
                         Please fill your profile details
                     </Text>
                     <View style={styles.input}>
-                        <FontAwesome name="user-o" size={25} color={theme.colors.textLight} />
+                        <Icon name="user" size={26} />
                         <TextInput
                             style={{flex: 1}}
                             placeholder='Enter your name'
@@ -113,7 +119,7 @@ const EditProfile = () => {
                         />
                     </View>
                     <View style={styles.input}>
-                        <Feather name="phone" size={25} color={theme.colors.textLight} />
+                      <Icon name="call" size={26} />
                         <TextInput
                             style={{flex: 1}}
                             placeholder='Enter your phone number'
@@ -123,7 +129,7 @@ const EditProfile = () => {
                         />
                     </View>
                     <View style={styles.input}>
-                        <Feather name="map-pin" size={25} color={theme.colors.textLight} />
+                      <Icon name="location" size={26} />
                         <TextInput 
                             style={{flex: 1}}
                             placeholder='Enter your address'
@@ -169,20 +175,21 @@ const styles = StyleSheet.create({
   avatar: {
     width: '100%', 
     height: '100%', 
-    borderRadius: 100,
+    borderRadius: theme.radius.lg*2.3,
+    borderCurve: 'continuous',
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.1)'
   },
   cameraIcon: {
     position: 'absolute',
     bottom: 0,
-    right: 0,
-    padding: 7,
+    right: -10,
+    padding: 8,
     borderRadius: 50,
-    backgroundColor: theme.colors.darkLight,
+    backgroundColor: 'white',
     shadowColor: theme.colors.textLight,
-    shadowOffset: {width: 0, height: 0},
-    shadowOpacity: 0.7,
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.4,
     shadowRadius: 5
   },
   form: {
@@ -198,14 +205,6 @@ const styles = StyleSheet.create({
     padding: 17,
     paddingHorizontal: 20,
     gap: 15
-  },
-  editProfileText: {
-    position: 'absolute',
-    alignSelf: 'center',
-    marginTop: 4,
-    fontSize: hp(3),
-    fontWeight: '600',
-    color: theme.colors.textDark
   },
   bio: {
     flexDirection: 'row',

@@ -25,8 +25,8 @@ const MainLayout = ()=>{
         console.log('session: ', session?.user?.id);
         if (session) {
             setAuth(session?.user);
-            updateUserData(session?.user); // cereate later
-            router.replace("/tabs");
+            updateUserData(session?.user); // update user like image, phone, bio
+            router.replace("/home");
         } else {
             setAuth(null);
             router.replace('/welcome')
