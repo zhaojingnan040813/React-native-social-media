@@ -14,3 +14,7 @@ export const hp = (percentage) => {
     const height = deviceHeight;
     return (percentage * height) / 100;
 };
+
+export const stripHtmlTags = (html) => {
+    return html.replace(/<[^>]*>?/gm, '');
+};

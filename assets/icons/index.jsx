@@ -15,6 +15,8 @@ import Edit from './Edit';
 import ArrowLeft from './ArrowLeft';
 import ThreeDotsCircle from './ThreeDotsCircle';
 import ThreeDotsHorizontal from './ThreeDotsHorizontal';
+import Comment from './Comment';
+import Share from './Share';
 
 
 const icons = {
@@ -31,7 +33,9 @@ const icons = {
     edit: Edit,
     arrowLeft: ArrowLeft,
     threeDotsCircle: ThreeDotsCircle,
-    threeDotsHorizontal: ThreeDotsHorizontal
+    threeDotsHorizontal: ThreeDotsHorizontal,
+    comment: Comment,
+    share: Share
 
 }
 

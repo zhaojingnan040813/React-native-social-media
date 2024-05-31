@@ -1,4 +1,4 @@
-import { View, Text, Button, Alert, StyleSheet, Pressable, ScrollView } from 'react-native'
+import { View, Text, Button, Alert, StyleSheet, Pressable, ScrollView, FlatList } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import ScreenWrapper from '../../components/ScreenWrapper'
 import { supabase } from '../../lib/supabase'
@@ -13,11 +13,14 @@ import { useRouter } from 'expo-router'
 import { fetchPosts } from '../../services/postService'
 import PostCard from '../../components/PostCard'
 import Loading from '../../components/Loading'
-
+import { getUserData } from '../../services/userService'
+var limit = 0;
 const HomeScreen = () => {
     const {user, setAuth} = useAuth();
     const router = useRouter();
     const [posts, setPosts] = useState([]);
+    const [hasMore, setHasMore] = useState(true);
+
     const onLogout = async () => {
         setAuth(null);
         const {error} = await supabase.auth.signOut();
@@ -26,13 +29,42 @@ const HomeScreen = () => {
         }
     }
 
+    const onNewPostInserted = async (payload)=>{
+      console.log('got post: ', payload);
+      if(payload.new){
+        let newPost = {...payload.new};
+        let res = await getUserData(newPost.userId);
+        newPost.user = res.success? res.data: {};
+        newPost.postLikes = [];
+        newPost.postComments = [];
+        setPosts(prevPosts=> [newPost, ...prevPosts]);
+      }
+    }
+
     useEffect(()=>{
-      getPosts();
+      
+
+      let channel = supabase
+      .channel('posts')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, onNewPostInserted)
+      .subscribe();
+
+      // getPosts();
+
+      return ()=>{
+        supabase.removeChannel(channel)
+      }
+
     },[]);
     
     const getPosts = async ()=>{
-      let res = await fetchPosts();
+
+      if(!hasMore) return null; // if no more posts then don't call the api
+      limit = limit+5;
+      console.log('fetching posts: ', limit);
+      let res = await fetchPosts(limit);
       if(res.success){
+        if(posts.length==res.data.length) setHasMore(false);
         setPosts(res.data);
       }
     }
@@ -42,25 +74,28 @@ const HomeScreen = () => {
       <View style={styles.container}>
         {/* header */}
         <View style={styles.header}>
-          <Pressable style={styles.avatar} onPress={()=> router.push('/profile')}>
-            <Image source={getUserImageSrc(user?.image)} style={styles.avatarImage} />
+          <Pressable>
+            <Text style={styles.title}>LinkUp</Text>
           </Pressable>
           <View style={styles.icons}>
             <Pressable>
-              <Icon name="heart" size={hp(3.5)} strokeWidth={2} color={theme.colors.text}  />
+              <Icon name="heart" size={hp(3.2)} strokeWidth={2} color={theme.colors.text}  />
             </Pressable>
-            <Pressable>
-              <Icon name="search" size={hp(3.5)} strokeWidth={2} color={theme.colors.text}  />
-            </Pressable>
+            {/* <Pressable>
+              <Icon name="search" size={hp(3.2)} strokeWidth={2} color={theme.colors.text}  />
+            </Pressable> */}
             <Pressable onPress={()=> router.push('newPost')}>
-              <Icon name="plus" size={hp(3.5)} strokeWidth={2} color={theme.colors.text}  />
+              <Icon name="plus" size={hp(3.2)} strokeWidth={2} color={theme.colors.text}  />
+            </Pressable>
+            <Pressable onPress={()=> router.push('/profile')}>
+              <Image source={getUserImageSrc(user?.image)} style={styles.avatarImage} />
             </Pressable>
           </View>
         </View>
 
         {/* posts */}
 
-        <ScrollView 
+        {/* <ScrollView 
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listStyle}
         >
@@ -68,10 +103,9 @@ const HomeScreen = () => {
             posts.map((item, index)=>{
               return (
                 <PostCard 
+                  currentUser={user}
                   item={item}
                   key={item?.id}
-                  index={index}
-                  isLast={posts.length==index+1}
                 />
               )
             })
@@ -79,7 +113,33 @@ const HomeScreen = () => {
           <View style={{marginTop: posts.length==0? 200: 30}}>
             <Loading />
           </View>
-        </ScrollView>
+        </ScrollView> */}
+        <FlatList
+          data={posts}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listStyle}
+          keyExtractor={(item, index) => item.id.toString()}
+          renderItem={({ item }) => <PostCard 
+            item={item} 
+            currentUser={user}
+            router={router} 
+          />}
+          onEndReached={() => {
+            getPosts();
+            console.log('got to the end');
+          }}
+          onEndReachedThreshold={0} //  Specifies how close to the bottom the user must scroll before 
+          ListFooterComponent={hasMore? (
+            <View style={{marginTop: posts.length==0? 200: 30}}>
+              <Loading />
+            </View>
+          ):(
+            <View style={{marginVertical: 30}}>
+             <Text style={styles.noPosts}>No more posts</Text>
+            </View>
+          )
+          }
+        />
 
         <Button onPress={onLogout} title="Logout" />
       </View>
@@ -102,28 +162,33 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginHorizontal: wp(4)
   },
-  avatar: {
-    height: hp(5.5),
-    width: hp(5.5),
-    borderRadius: theme.radius.lg,
-    borderCurve: 'continuous',
-    padding: 3,
-    backgroundColor: theme.colors.gray,
+  title: {
+    color: theme.colors.text,
+    fontSize: hp(3.2),
+    fontWeight: theme.fonts.bold
   },
   avatarImage: {
-    flex: 1, 
-    borderRadius: theme.radius.lg-3,
+    height: hp(4.3),
+    width: hp(4.3),
+    borderRadius: theme.radius.sm,
     borderCurve: 'continuous',
+    borderColor: theme.colors.gray,
+    borderWidth: 3
   },
   icons: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 22
+    gap: 18
   },
   listStyle: {
     paddingTop: 20,
     paddingHorizontal: wp(4)
+  },
+  noPosts: {
+    fontSize: hp(2),
+    textAlign: 'center',
+    color: theme.colors.text
   }
 })
 

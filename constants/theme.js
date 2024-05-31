@@ -8,7 +8,9 @@ export const theme = {
 
         text: '#494949',
         textLight: '#7C7C7C',
-        textDark: '#1D1D1D'
+        textDark: '#1D1D1D',
+
+        rose: '#ef4444',
     },
     fonts: {
         medium: '500',

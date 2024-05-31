@@ -4,7 +4,8 @@ import { Stack, useRouter } from 'expo-router'
 import { AuthProvider, useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { getUserData } from '../services/userService'
-
+import { LogBox } from 'react-native';
+LogBox.ignoreLogs(['You seem to update props of the']); // Ignore log notification by message
 const _layout = () => {
     
   return (
@@ -44,7 +45,14 @@ const MainLayout = ()=>{
             screenOptions={{
                 headerShown: false
             }}
-        />
+        >
+            <Stack.Screen
+                name="(main)/postDetails"
+                options={{
+                    presentation: 'modal'
+                }}
+            />
+        </Stack>
     )
 }
 

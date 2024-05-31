@@ -116,7 +116,8 @@ const styles = StyleSheet.create({
     shadowColor: theme.colors.textLight,
     shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.4,
-    shadowRadius: 5
+    shadowRadius: 5,
+    elevation: 7
   },
   userName: {
     fontSize: hp(3),

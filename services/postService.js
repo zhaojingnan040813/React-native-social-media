@@ -35,21 +35,28 @@ export const createPost = async (post)=>{
 }
 
 
-export const fetchPosts = async ()=>{
+export const fetchPosts = async (limit=10)=>{
     try{
-        const { data, error } = await supabase
-        .from('posts')
+
         // .select(`
         //     id,
         //     body,
         //     file, 
         //     users ( id, name, image )
         // `);
+
+        // add postLikes later when wroking on post like
+
+        // .limit(limit); // later when implementing pagination
+        const { data, error } = await supabase
+        .from('posts')
         .select(`
             *,
-            user: users ( id, name, image )
+            user: users ( id, name, image ),
+            postLikes (*)
         `)
         .order('created_at', { ascending: false })
+        .limit(limit)
 
         if(error){
             console.log('fetchPosts error: ', error);
@@ -60,5 +67,46 @@ export const fetchPosts = async ()=>{
     }catch(error){
         console.log('fetchPosts error: ', error);
         return {success: false, msg: "Could not fetch the posts"};
+    }
+}
+
+export const createPostLike = async (postLike)=>{
+    try{
+        
+        const { data, error } = await supabase
+        .from('postLikes')
+        .insert(postLike)
+        .select()
+        .single();
+
+        if(error){
+            console.log('postLike error: ', error);
+            return {success: false, msg: "Could not like this post"};
+        }
+        return {success: true, data: data};
+
+    }catch(error){
+        console.log('postLike error: ', error);
+        return {success: false, msg: "Could not like this post"};
+    }
+}
+export const removePostLike = async (postId, userId)=>{
+    try{
+        
+        const { error } = await supabase
+        .from('postLikes')
+        .delete()
+        .eq('userId', userId)
+        .eq('postId', postId)
+
+        if(error){
+            console.log('postLike error: ', error);
+            return {success: false, msg: "Could not remove post like"};
+        }
+        return {success: true, data: {postId, userId}};
+
+    }catch(error){
+        console.log('postLike error: ', error);
+        return {success: false, msg: "Could not remove post like"};
     }
 }
