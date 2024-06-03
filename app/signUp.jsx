@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router';
 import Button from '../components/Button';
 import { supabase } from '../lib/supabase';
 import Icon from '../assets/icons';
+import Input from '../components/Input';
 
 const SignUp = () => {
 
@@ -72,34 +73,25 @@ const SignUp = () => {
           <Text style={{fontSize: hp(1.5), color: theme.colors.text}}>
             Please fill the details to create an account
           </Text>
-          <View style={styles.input}>
-            <Icon name="user" size={26} strokeWidth={1.6} />
-            <TextInput
-              style={{flex: 1}}
-              placeholder='Enter your name'
-              placeholderTextColor={theme.colors.textLight}
-              onChangeText={value=> nameRef.current=value}
-            />
-          </View>
-          <View style={styles.input}>
-            <Icon name="mail" size={26} strokeWidth={1.6} />
-            <TextInput
-              style={{flex: 1}}
-              placeholder='Enter your email'
-              placeholderTextColor={theme.colors.textLight}
-              onChangeText={value=> emailRef.current=value}
-            />
-          </View>
-          <View style={styles.input}>
-            <Icon name="lock" size={26} strokeWidth={1.6} />
-            <TextInput 
-              style={{flex: 1}}
-              secureTextEntry
-              placeholder='Enter your password'
-              placeholderTextColor={theme.colors.textLight}
-              onChangeText={value=> passwordRef.current=value}
-            />
-          </View>
+          <Input
+            icon={<Icon name="user" size={26} strokeWidth={1.6} />}
+            placeholder='Enter your name'
+            placeholderTextColor={theme.colors.textLight}
+            onChangeText={value=> nameRef.current=value}
+          />
+          <Input
+            icon={<Icon name="mail" size={26} strokeWidth={1.6} />}
+            placeholder='Enter your email'
+            placeholderTextColor={theme.colors.textLight}
+            onChangeText={value=> emailRef.current=value}
+          />
+          <Input 
+            icon={<Icon name="lock" size={26} strokeWidth={1.6} />}
+            secureTextEntry
+            placeholder='Enter your password'
+            placeholderTextColor={theme.colors.textLight}
+            onChangeText={value=> passwordRef.current=value}
+          />
 
           {/* button */}
           <Button title="Sign up" loading={loading} onPress={onSubmit} />

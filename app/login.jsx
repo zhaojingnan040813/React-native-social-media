@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router';
 import Button from '../components/Button';
 import { supabase } from '../lib/supabase';
 import Icon from '../assets/icons';
+import Input from '../components/Input';
 
 const Login = () => {
 
@@ -61,25 +62,19 @@ const Login = () => {
           <Text style={{fontSize: hp(1.5), color: theme.colors.text}}>
             Please login to continue
           </Text>
-          <View style={styles.input}>
-            <Icon name="mail" size={26} strokeWidth={1.6} />
-            <TextInput
-              style={{flex: 1}}
-              placeholder='Enter your email'
-              placeholderTextColor={theme.colors.textLight}
-              onChangeText={value=> emailRef.current=value}
-            />
-          </View>
-          <View style={styles.input}>
-            <Icon name="lock" size={26} strokeWidth={1.6} />
-            <TextInput 
-              style={{flex: 1}}
-              secureTextEntry
-              placeholder='Enter your password'
-              placeholderTextColor={theme.colors.textLight}
-              onChangeText={value=> passwordRef.current=value}
-            />
-          </View>
+          <Input
+            icon={<Icon name="mail" size={26} strokeWidth={1.6} />}
+            placeholder='Enter your email'
+            placeholderTextColor={theme.colors.textLight}
+            onChangeText={value=> emailRef.current=value}
+          />
+          <Input 
+            icon={<Icon name="lock" size={26} strokeWidth={1.6} />}
+            secureTextEntry
+            placeholder='Enter your password'
+            placeholderTextColor={theme.colors.textLight}
+            onChangeText={value=> passwordRef.current=value}
+          />
           <Text style={styles.forgotPassword}>
             Forgot Password?
           </Text>
@@ -117,16 +112,6 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: 25,
-  },
-  input: {
-    flexDirection: 'row',
-    borderWidth: 0.4,
-    borderColor: theme.colors.text,
-    borderRadius: theme.radius.xxl,
-    borderCurve: 'continuous',
-    padding: 18,
-    paddingHorizontal: 20,
-    gap: 15
   },
   forgotPassword: {
     textAlign: 'right',

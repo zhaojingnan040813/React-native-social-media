@@ -1,29 +1,42 @@
 import { View, Text, StyleSheet, ScrollView, Pressable, Image as RNImage, Alert } from 'react-native'
-import React, { useCallback, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import ScreenWrapper from '../../components/ScreenWrapper'
 import { hp, wp } from '../../helpers/common'
 import { theme } from '../../constants/theme'
 import { useAuth } from '../../contexts/AuthContext'
-import { getFilePath, getUserImageSrc, uploadFile } from '../../services/imageService'
+import { getFilePath, getSupabaseFileUrl, getUserImageSrc, uploadFile } from '../../services/imageService'
 import { Image } from 'expo-image'
 import RichTextEditor from '../../components/RichTextEditor'
 import Button from '../../components/Button'
 import { AntDesign, FontAwesome, FontAwesome6, Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker';
 import { Video, AVPlaybackStatus } from 'expo-av';
-import { createPost } from '../../services/postService'
+import { createOrUpdatePost } from '../../services/postService'
 import Header from '../../components/Header'
-import { useRouter } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
+import Avatar from '../../components/Avatar'
 
 
 const NewPost = () => {
   const {user} = useAuth();
+  const post = useLocalSearchParams();
+  console.log('post: ', post);
   // const videoRef = useRef(null);
   const [file, setFile] = useState(null);
   const bodyRef = useRef('');
   const [loading, setLoading] = useState(false);
   const editorRef = useRef(null);
   const router = useRouter();
+
+  useEffect(()=>{
+    if(post && post.id){
+      bodyRef.current = post.body;
+      setFile(post.file || null);
+      setTimeout(() => {
+        editorRef?.current?.setContentHTML(post.body);
+      }, (300));
+    }
+  },[])
 
   const onPick = async (isImage) => {
     // No permissions request is necessary for launching the image library
@@ -32,20 +45,20 @@ const NewPost = () => {
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.7,
-      base64: true
+      // base64: true
     }
 
     if(!isImage){
       mediaConfig = {
         mediaTypes: ImagePicker.MediaTypeOptions.Videos,
         allowsEditing: true,
-        base64: true
+        // base64: true
       }
     }
     let result = await ImagePicker.launchImageLibraryAsync(mediaConfig);
 
     if (!result.canceled) {
-      console.log({...result.assets[0], base64: null});
+      // console.log({...result.assets[0]});
       setFile(result.assets[0]);
     }
   };
@@ -59,12 +72,14 @@ const NewPost = () => {
     }
 
     setLoading(true);
-    let post = {
+    let data = {
       file,
       body: bodyRef.current,
       userId: user?.id,
     }
-    let res = await createPost(post);
+    if(post && post.id) data.id = post.id;
+
+    let res = await createOrUpdatePost(data);
     setLoading(false);
     if(res.success){
       setFile(null);
@@ -77,6 +92,39 @@ const NewPost = () => {
 
   }
 
+  const isLocalFile = file=>{
+    if(!file) return null;
+
+    if(typeof file == 'object') return true;
+    return false;
+  }
+
+  const getFileType = file=>{
+    if(!file) return null;
+
+    if(isLocalFile(file)){
+      return file.type;
+    }
+    
+    if(file.includes('postImages')){
+      return 'image';
+    }
+
+    return 'video';
+  }
+
+  const getFileUri = file=>{
+    if(!file) return null;
+    if(isLocalFile(file)){
+      return file.uri;
+    }else{
+      return getSupabaseFileUrl(file)?.uri;
+    }
+  }
+
+  console.log('file: ', file);
+
+
   return (
     <ScreenWrapper bg="white">
       <View style={styles.container}>
@@ -85,7 +133,12 @@ const NewPost = () => {
         <ScrollView contentContainerStyle={{gap: 20}}>
           {/* header */}
           <View style={styles.header}>
-              <Image source={getUserImageSrc(user?.image)} style={styles.avatar} />
+              <Avatar
+                uri={user?.image}
+                size={hp(6.5)}
+                rounded={theme.radius.xl}
+              />
+              {/* <Image source={getUserImageSrc(user?.image)} style={styles.avatar} /> */}
               <View style={{gap: 2}}>
                 <Text style={styles.username}>{user && user.name}</Text>
                 <Text style={styles.publicText}>Public</Text>
@@ -97,10 +150,9 @@ const NewPost = () => {
           {
             file && (
               <View style={styles.file}>
-                {
+                {/* {
                   file?.type=='video'? (
                     <Video
-                      // ref={videoRef}
                       style={{flex: 1}}
                       source={{
                         uri: file?.uri,
@@ -108,12 +160,28 @@ const NewPost = () => {
                       useNativeControls
                       resizeMode="cover"
                       isLooping
-                      // onPlaybackStatusUpdate={status => setStatus(() => status)}
                     />
                   ):(
                     <RNImage source={{uri: file?.uri}} resizeMode='cover' style={{flex: 1}} />
                   )
+                } */}
+
+                {
+                  getFileType(file)=='video'? (
+                    <Video
+                      style={{flex: 1}}
+                      source={{
+                        uri: getFileUri(file)
+                      }}
+                      useNativeControls
+                      resizeMode="cover"
+                      isLooping
+                    />
+                  ):(
+                    <RNImage source={{uri: getFileUri(file)}} resizeMode='cover' style={{flex: 1}} />
+                  )
                 }
+
                 
                 <Pressable style={styles.closeIcon} onPress={()=> setFile(null)}>
                   <AntDesign name="closecircle" size={25} color="rgba(255, 0,0,0.6)" />
@@ -136,7 +204,7 @@ const NewPost = () => {
         </ScrollView>
         <Button 
           buttonStyle={{height: hp(6.2)}} 
-          title="Post" 
+          title={post && post.id? "Update": "Post"}
           loading={loading}
           hasShadow={false} 
           onPress={onSubmit}
@@ -195,15 +263,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1.5,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: theme.radius.lg,
+    padding: 14,
+    paddingHorizontal: 18,
+    borderRadius: theme.radius.xl,
     borderCurve: 'continuous',
     borderColor: theme.colors.gray
   },
   mediaIcons: {
     flexDirection: 'row',
-    gap: 15
+    gap: 18
   },
 
   addImageText: {

@@ -21,7 +21,6 @@ const RichTextEditor = ({
             actions.removeFormat,
             actions.setBold,
             actions.setItalic,
-            actions.checkboxList,
             actions.insertOrderedList,
             actions.blockquote,
             actions.alignLeft,

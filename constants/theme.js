@@ -11,6 +11,7 @@ export const theme = {
         textDark: '#1D1D1D',
 
         rose: '#ef4444',
+        roseLight: '#f87171',
     },
     fonts: {
         medium: '500',

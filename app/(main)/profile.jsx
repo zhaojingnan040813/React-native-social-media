@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable, TouchableOpacity, Alert, FlatList } from 'react-native'
 import React, { useState } from 'react'
 import { hp, wp } from '../../helpers/common'
 import { useAuth } from '../../contexts/AuthContext'
@@ -10,26 +10,113 @@ import { Image } from 'expo-image';
 import Header from '../../components/Header'
 import ScreenWrapper from '../../components/ScreenWrapper'
 import Icon from '../../assets/icons'
+import Avatar from '../../components/Avatar'
+import { supabase } from '../../lib/supabase'
+import { fetchPosts } from '../../services/postService'
+import PostCard from '../../components/PostCard'
+import Loading from '../../components/Loading'
 
-
+var limit = 0;
 const Profile = () => {
-  const {user} = useAuth();
+  const {user, setAuth} = useAuth();
   const router = useRouter();
+  const [posts, setPosts] = useState([]);
+  const [hasMore, setHasMore] = useState(true);
+
   // first do this
+
+  const getPosts = async ()=>{
+
+    if(!hasMore) return null; // if no more posts then don't call the api
+    limit = limit+10; // get 10 more posts everytime
+    console.log('fetching posts: ', limit);
+    let res = await fetchPosts(limit, user.id);
+    if(res.success){
+      if(posts.length==res.data.length) setHasMore(false);
+      setPosts(res.data);
+    }
+  }
   
+
+  const onLogout = async () => {
+    setAuth(null);
+    const {error} = await supabase.auth.signOut();
+    if (error) {
+      Alert.alert("Error Signing Out User", error.message);
+    }
+}
+
+  const handleLogout = ()=>{
+    Alert.alert('Confirm', 'Are you sure you want log out?', [
+        {
+          text: 'Cancel',
+          onPress: () => console.log('Cancel'),
+          style: 'cancel',
+        },
+        {
+            text: 'Logout', 
+            onPress: () => onLogout(),
+            style: 'destructive'
+        },
+    ]);
+  }
+
   return (
     <ScreenWrapper bg="white">
-      <ScrollView style={{flex: 1, backgroundColor:'white'}}> 
-        {/* <Image style={styles.headerShape} source={require('../../assets/images/headerShape.png')} /> */}
-        <View style={{paddingHorizontal: wp(4)}}>
+      {/* first create UserHeader and use it here, then move it to header comp when implementing user posts */}
+      {/* posts */}
+      <FlatList
+        data={posts}
+        ListHeaderComponent={<UserHeader user={user} handleLogout={handleLogout} router={router} />}
+        ListHeaderComponentStyle={{marginBottom: 30}}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listStyle}
+        keyExtractor={(item, index) => item.id.toString()}
+        renderItem={({ item }) => <PostCard 
+          item={item} 
+          currentUser={user}
+          router={router} 
+        />}
+        onEndReached={() => {
+          getPosts();
+          console.log('got to the end');
+        }}
+        onEndReachedThreshold={0} //  Specifies how close to the bottom the user must scroll before endreached is triggers, 0 -> 1
+        ListFooterComponent={hasMore? (
+            <View style={{marginTop: posts.length==0? 100: 30}}>
+              <Loading />
+            </View>
+          ):(
+            <View style={{marginVertical: 30}}>
+              <Text style={styles.noPosts}>No more posts</Text>
+            </View>
+          )
+        }
+      />
+    </ScreenWrapper>
+  )
+}
+
+const UserHeader = ({user, handleLogout, router})=>{
+  return (
+    <View style={{flex: 1, backgroundColor:'white'}}> 
+        <View>
           <Header title="Profile" mb={30} />
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Icon name="logout" size={26} color={theme.colors.rose} />
+          </TouchableOpacity>
         </View>
         
         <View style={styles.container}>
           <View style={{gap: 15}}>
             {/* avatar */}
             <View style={styles.avatarContainer}>
-              <Image source={getUserImageSrc(user?.image)} style={styles.avatar} />
+              <Avatar
+                uri={user?.image}
+                size={hp(12)}
+                rounded={theme.radius.xxl*1.4}
+              />
+              {/* <Image source={getUserImageSrc(user?.image)} style={styles.avatar} /> */}
               <Pressable style={styles.editIcon} onPress={()=> router.push('/editProfile')}>
                 <Icon name="edit" strokeWidth={2.5} size={20} />
               </Pressable>
@@ -46,7 +133,7 @@ const Profile = () => {
             <View style={{gap: 10}}>
               
               <View style={styles.info}>
-                <Feather name="mail" size={20} color={theme.colors.textLight} />
+                <Icon name="mail" size={20} color={theme.colors.textLight} />
                 <Text style={[styles.infoText, {fontSize: hp(1.8)}]}> 
                     {user && user.email}
                   </Text>
@@ -54,7 +141,7 @@ const Profile = () => {
               {
                 user && user.phoneNumber && (
                   <View style={styles.info}>
-                    <Feather name="phone" size={20} color={theme.colors.textLight} />
+                    <Icon name="call" size={20} color={theme.colors.textLight} />
                     <Text style={[styles.infoText, {fontSize: hp(1.8)}]}> 
                         {
                           user.phoneNumber
@@ -72,18 +159,15 @@ const Profile = () => {
               
             </View>
           </View>
+          
         </View>
-      </ScrollView>
-      
-    </ScreenWrapper>
+      </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // top: -30,
-    paddingHorizontal: wp(4)
   },
   headerContainer: {
     marginHorizontal: wp(4), 
@@ -97,14 +181,6 @@ const styles = StyleSheet.create({
     height: hp(12),
     width: hp(12),
     alignSelf: 'center'
-  },
-  avatar: {
-    width: '100%', 
-    height: '100%', 
-    borderRadius: theme.radius.lg*2,
-    borderCurve: 'continuous',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)'
   },
   editIcon: {
     position: 'absolute',
@@ -127,13 +203,31 @@ const styles = StyleSheet.create({
   info: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: 10,
   },
   infoText: {
     fontSize: hp(1.6),
     fontWeight: '500',
     color: theme.colors.textLight
   },
+
+  logoutButton: {
+    position: 'absolute',
+    right: 0,
+    padding: 5,
+    borderRadius: theme.radius.sm,
+    backgroundColor: '#fee2e2'
+  },
+  listStyle: {
+    paddingHorizontal: wp(4),
+    paddingBottom: 30,
+
+  },
+  noPosts: {
+    fontSize: hp(2),
+    textAlign: 'center',
+    color: theme.colors.text
+  }
 
   
 })

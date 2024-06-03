@@ -11,6 +11,24 @@ import { Video } from 'expo-av';
 import { createPostLike, removePostLike } from '../services/postService';
 import { Share } from 'react-native';
 import Loading from './Loading';
+import Avatar from './Avatar';
+
+const textStyle = {
+  color: theme.colors.dark,
+  fontSize: hp(1.75)
+}
+
+const tagsStyles = {
+  div: textStyle,
+  p: textStyle,
+  ol: textStyle,
+  h1: {
+    color: theme.colors.dark
+  },
+  h4: {
+    color: theme.colors.dark
+  },
+};
 
 const PostCard = ({
   item,
@@ -18,6 +36,9 @@ const PostCard = ({
   router,
   showMoreIcon=true,
   hasShadow=true,
+  showDelete=false,
+  onDelete=()=>{},
+  onEdit=()=>{}
 }) => {
 
   const [likes, setLikes] = useState([]);
@@ -35,18 +56,7 @@ const PostCard = ({
     shadowRadius: 6,
     elevation: 1,
   }
-  
-
-  const tagsStyles = {
-    div: {
-      color: theme.colors.dark,
-      fontSize: hp(1.75)
-    },
-    p: {
-      color: theme.colors.dark,
-      fontSize: hp(1.75)
-    }
-  };
+  // console.log('item: ', item.comments);
 
   useEffect(()=>{
     setLikes(item?.postLikes);
@@ -93,27 +103,58 @@ const PostCard = ({
       
   }
 
+  const handlePostDelete = ()=>{
+    Alert.alert('Confirm', 'Are you sure you want to do this?', [
+        {
+          text: 'Cancel',
+          onPress: () => console.log('Cancel delete'),
+          style: 'cancel',
+        },
+        {
+            text: 'Delete', 
+            onPress: () => onDelete(item),
+            style: 'destructive'
+        },
+    ]);
+  }
+
   const openPostDetails = ()=>{
-    router.push({pathname: 'postDetails', params: {data: JSON.stringify(item)}})
+    router.push({pathname: 'postDetails', params: {postId: item?.id}})
   }
   return (
     <View style={[styles.container, hasShadow && shadowStyles]}>
       <View style={styles.header}>
         {/* user info and post time */}
         <View style={styles.userInfo}>
-          <Image source={getUserImageSrc(item?.user?.image)} style={styles.avatarImage} />
+          <Avatar 
+            size={hp(4.5)}
+            uri={item?.user?.image}
+            rounded={theme.radius.md}
+          />
           <View style={{gap: 2}}>
             <Text style={styles.username}>{item?.user?.name}</Text>
             <Text style={styles.postTime}>{createdAt}</Text>
           </View>
         </View>
 
-        {/* actions icon */}
+        {/* actions */}
         {
           showMoreIcon && (
             <TouchableOpacity onPress={openPostDetails}>
-              <Icon name="threeDotsHorizontal" size={30} strokeWidth={3} color={theme.colors.text} />
+              <Icon name="threeDotsHorizontal" size={hp(3.4)} strokeWidth={3} color={theme.colors.text} />
             </TouchableOpacity>
+          )
+        }
+        {
+          showDelete && currentUser.id==item.userId && (
+            <View style={styles.actions}>
+              <TouchableOpacity onPress={()=> onEdit(item)}>
+                <Icon name="edit" size={hp(2.5)} color={theme.colors.text} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handlePostDelete}>
+                <Icon name="delete" size={hp(2.5)} color={theme.colors.rose} />
+              </TouchableOpacity>
+            </View>
           )
         }
       </View>
@@ -176,10 +217,11 @@ const PostCard = ({
           </TouchableOpacity>
           <Text style={styles.count}>
             {/* implement after adding post details modal */}
-            {/* {
-              item?.postComments?.length
-            } */}
-            0
+            {/* 0 */}
+            {
+              item?.comments[0]?.count
+            }
+
           </Text>
         </View>
         <View style={styles.footerButton}>
@@ -221,14 +263,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8
   },  
-  avatarImage: {
-    height: hp(4.5),
-    width: hp(4.5),
-    borderRadius: theme.radius.md,
-    borderCurve: 'continuous',
-    borderWidth: 1,
-    borderColor: theme.colors.darkLight
-  },
   username: {
     fontSize: hp(1.7),
     color: theme.colors.textDark,
@@ -262,6 +296,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4
+  },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center', 
+    gap: 18,
   },
   count: {
     color: theme.colors.text,

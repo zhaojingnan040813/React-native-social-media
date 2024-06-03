@@ -14,6 +14,7 @@ import { getFilePath, getUserImageSrc, uploadFile } from '../../services/imageSe
 import { Image } from 'expo-image';
 import Header from '../../components/Header'
 import Icon from '../../assets/icons'
+import Input from '../../components/Input'
 
 
 const EditProfile = () => {
@@ -50,7 +51,6 @@ const EditProfile = () => {
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.7,
-      base64: true
     });
 
     if (!result.canceled) {
@@ -72,11 +72,6 @@ const EditProfile = () => {
       if(imageResult.success) userData.image = imageResult.data;
       else userData.image = null;
     }
-    // if(typeof image == 'object'){
-    //   let imageResult = await uploadFile('profiles', image?.base64, true);
-    //   if(imageResult.success) userData.image = imageResult.data;
-    //   else userData.image = null;
-    // }
     
     const res = await updateUser(currentUser?.id, userData);
     setLoading(false);
@@ -108,48 +103,36 @@ const EditProfile = () => {
                     <Text style={{fontSize: hp(1.5), color: theme.colors.text}}>
                         Please fill your profile details
                     </Text>
-                    <View style={styles.input}>
-                        <Icon name="user" size={26} />
-                        <TextInput
-                            style={{flex: 1}}
-                            placeholder='Enter your name'
-                            placeholderTextColor={theme.colors.textLight}
-                            value={user.name}
-                            onChangeText={value=> setUser({...user, name: value})}
-                        />
-                    </View>
-                    <View style={styles.input}>
-                      <Icon name="call" size={26} />
-                        <TextInput
-                            style={{flex: 1}}
-                            placeholder='Enter your phone number'
-                            placeholderTextColor={theme.colors.textLight}
-                            value={user.phoneNumber}
-                            onChangeText={value=> setUser({...user, phoneNumber: value})}
-                        />
-                    </View>
-                    <View style={styles.input}>
-                      <Icon name="location" size={26} />
-                        <TextInput 
-                            style={{flex: 1}}
-                            placeholder='Enter your address'
-                            placeholderTextColor={theme.colors.textLight}
-                            value={user.address}
-                            onChangeText={value=> setUser({...user, address: value})}
-                        />
-                    </View>
+                    <Input
+                      icon={<Icon name="user" size={26} />}
+                      placeholder='Enter your name'
+                      placeholderTextColor={theme.colors.textLight}
+                      value={user.name}
+                      onChangeText={value=> setUser({...user, name: value})}
+                    />
+                    <Input
+                      icon={<Icon name="call" size={26} />}
+                      placeholder='Enter your phone number'
+                      placeholderTextColor={theme.colors.textLight}
+                      value={user.phoneNumber}
+                      onChangeText={value=> setUser({...user, phoneNumber: value})}
+                    />
+                    <Input
+                      icon={<Icon name="location" size={26} />}
+                      placeholder='Enter your address'
+                      placeholderTextColor={theme.colors.textLight}
+                      value={user.address}
+                      onChangeText={value=> setUser({...user, address: value})}
+                    />
 
-                    <View style={styles.bio}>
-                        <TextInput
-                            value={user.bio}
-                            style={{flex: 1}}
-                            placeholder='Enter your bio'
-                            placeholderTextColor={theme.colors.textLight}
-                            onChangeText={value=> setUser({...user, bio: value})}
-                            multiline={true}
-                            // underlineColorAndroid='transparent'
-                        />
-                    </View>
+                    <Input
+                      placeholder='Enter your bio'
+                      placeholderTextColor={theme.colors.textLight}
+                      onChangeText={value=> setUser({...user, bio: value})}
+                      multiline={true}
+                      value={user.bio}
+                      containerStyle={styles.bio}
+                    />
 
                     {/* button */}
                     <Button title="Update" loading={loading} onPress={onSubmit} />
@@ -175,10 +158,10 @@ const styles = StyleSheet.create({
   avatar: {
     width: '100%', 
     height: '100%', 
-    borderRadius: theme.radius.lg*2.3,
+    borderRadius: theme.radius.xxl*1.8,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)'
+    borderColor: theme.colors.darkLight
   },
   cameraIcon: {
     position: 'absolute',
@@ -209,14 +192,9 @@ const styles = StyleSheet.create({
   },
   bio: {
     flexDirection: 'row',
-    borderWidth: 0.4,
-    borderColor: theme.colors.text,
-    borderRadius: theme.radius.xxl,
-    borderCurve: 'continuous',
-    padding: 10,
     height: hp(15),
-    paddingHorizontal: 20,
-    gap: 15
+    alignItems: 'flex-start',
+    paddingVertical: 15,
   }
 
   
