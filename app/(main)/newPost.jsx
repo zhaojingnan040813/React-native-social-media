@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, Image as RNImage, Alert } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable, Image as RNImage, Alert, TouchableOpacity } from 'react-native'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import ScreenWrapper from '../../components/ScreenWrapper'
 import { hp, wp } from '../../helpers/common'
@@ -15,6 +15,7 @@ import { createOrUpdatePost } from '../../services/postService'
 import Header from '../../components/Header'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import Avatar from '../../components/Avatar'
+import Icon from '../../assets/icons'
 
 
 const NewPost = () => {
@@ -192,12 +193,12 @@ const NewPost = () => {
           <View style={styles.media}>
             <Text style={styles.addImageText}>Add to your post</Text>
             <View style={styles.mediaIcons}>
-              <Pressable onPress={()=> onPick(true)}>
-                <Ionicons name="image" size={27} color={theme.colors.text} />
-              </Pressable>
-              <Pressable onPress={()=> onPick(false)}>
-                <FontAwesome6 name="video" size={27} color={theme.colors.text} />
-              </Pressable>
+              <TouchableOpacity onPress={()=> onPick(true)}>
+                <Icon name="image" size={30} color={theme.colors.dark} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={()=> onPick(false)}>
+                <Icon name="video" size={33} color={theme.colors.dark} />
+              </TouchableOpacity>
             </View>
             
           </View> 
@@ -263,7 +264,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1.5,
-    padding: 14,
+    padding: 12,
     paddingHorizontal: 18,
     borderRadius: theme.radius.xl,
     borderCurve: 'continuous',
@@ -271,7 +272,8 @@ const styles = StyleSheet.create({
   },
   mediaIcons: {
     flexDirection: 'row',
-    gap: 18
+    alignItems: 'center',
+    gap: 15
   },
 
   addImageText: {

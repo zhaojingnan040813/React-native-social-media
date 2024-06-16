@@ -2,6 +2,7 @@ import { decode } from "base64-arraybuffer";
 import { supabase } from "../lib/supabase";
 import * as FileSystem from 'expo-file-system';
 import { Share } from 'react-native';
+import { supabaseUrl } from "../constants";
 export const uploadFile = async (folderName, fileUri, isImage=true)=>{
     try{
         let fileName = getFilePath(folderName, isImage);
@@ -45,7 +46,7 @@ export const getUserImageSrc = (imagePath)=>{
 
 export const getSupabaseFileUrl = filePath=>{
     if(filePath)
-        return {uri: 'https://wzrothbtakwqbnhhlvkz.supabase.co/storage/v1/object/public/uploads/'+filePath};
+        return {uri: `${supabaseUrl}/storage/v1/object/public/uploads/${filePath}`};
     return null;
 }
 

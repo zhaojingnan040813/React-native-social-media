@@ -26,6 +26,7 @@ const PostDetails = () => {
     const {user} = useAuth();  
     const commentRef = useRef("");
     const inputRef = useRef(null);
+    const [startLoading, setStartLoading] = useState(true);
     // console.log('got item: ', item);
 
     const handleNewComment = async payload=>{
@@ -67,6 +68,7 @@ const PostDetails = () => {
     const getPostDetails = async ()=>{
         let res = await fetchPostDetails(postId);
         // console.log('res: ', res);
+        setStartLoading(false);
         if(res.success) setPost(res.data);
     }
 
@@ -129,12 +131,21 @@ const PostDetails = () => {
         
     }
 
-    if(!post){
+    if(startLoading){
         return (
-            <View style={{flex: 1, alignItems: 'center', justifyContent: 'center'}}>
+            <View style={styles.center}>
                 <Loading />
             </View>
         )
+    }
+
+    if(!post){
+        return (
+            <View style={[styles.center, {justifyContent: 'flex-start', marginTop: 100}]}>
+                <Text style={styles.notFound}>Post not found !</Text>
+            </View>     
+        )
+        
     }
     
   return (
@@ -227,6 +238,16 @@ const styles = StyleSheet.create({
         borderCurve: 'continuous',
         height: hp(5.8),
         width: hp(5.8)
+    },
+    center: {
+        flex: 1, 
+        alignItems: 'center', 
+        justifyContent: 'center'
+    },
+    notFound: {
+        fontSize: hp(2.5),
+        color: theme.colors.text,
+        fontWeight: theme.fonts.medium,
     },
     loading: {
         height: hp(5.8), 

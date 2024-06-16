@@ -20,6 +20,8 @@ import Share from './Share';
 import Send from './Send';
 import Delete from './Delete';
 import Logout from './logout';
+import Image from './Image';
+import Video from './Video';
 
 
 const icons = {
@@ -41,7 +43,9 @@ const icons = {
     share: Share,
     send: Send,
     delete: Delete,
-    logout: Logout
+    logout: Logout,
+    image: Image,
+    video: Video,
 
 }
 
