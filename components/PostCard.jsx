@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     fontWeight: theme.fonts.medium,
   },
   content: {
-    gap: 5,
+    gap: 10,
     // marginBottom: 10,
   },
   postMedia: {

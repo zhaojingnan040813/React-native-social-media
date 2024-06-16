@@ -14,10 +14,11 @@ const Button = ({
 }) => {
 
     const shadowStyle = {
-        shadowColor: theme.colors.textLight,
+        shadowColor: theme.colors.dark,
         shadowOffset: {width: 0, height: 10},
-        shadowOpacity: 0.3,
-        shadowRadius: 10
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4
     }
     if(loading){
         return (
