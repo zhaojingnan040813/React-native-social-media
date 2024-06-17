@@ -41,6 +41,12 @@ const PostCard = ({
   onEdit=()=>{}
 }) => {
 
+<<<<<<< HEAD
+=======
+  
+  
+
+>>>>>>> f44a44e (patched react-native-pell-rich-editor)
   const [likes, setLikes] = useState([]);
   const [loading, setLoading] = useState(false);
 
