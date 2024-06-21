@@ -1,6 +1,6 @@
 Follow these steps to successfully run this project.
 
-This project is already using a dummy supabase project so you can just run the following commands to run the app:
+This project is already using a test supabase project so you can just run the following commands to successfully run the app:
 - npm install
 - npm run start
 

@@ -179,7 +179,7 @@ const NewPost = () => {
                       isLooping
                     />
                   ):(
-                    <RNImage source={{uri: getFileUri(file)}} resizeMode='cover' style={{flex: 1}} />
+                    <Image source={{uri: getFileUri(file)}} contentFit='cover' style={{flex: 1}} />
                   )
                 }
 

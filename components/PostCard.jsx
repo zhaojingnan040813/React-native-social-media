@@ -178,6 +178,7 @@ const PostCard = ({
           item?.file && item?.file?.includes('postImages') && (
             <Image 
               source={getSupabaseFileUrl(item?.file)}
+              transition={100}
               style={styles.postMedia}
               contentFit='cover'
             />
