@@ -6,6 +6,12 @@ This project is already using a test supabase project so you can just run the fo
 
 thats it.
 
+*important:
+You won't be able to create post in this test supabase project (to prevent users from posting abusive/sexual content).
+But you can explore the rest of the features.
+Create your own supabase project and configure it in this project to enable post creation. (follow the steps below for supabase setup).
+
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 But if you want to use your own supabase project then follow the steps below:
