@@ -15,12 +15,17 @@ import PostCard from '../../components/PostCard'
 import Loading from '../../components/Loading'
 import { getUserData } from '../../services/userService'
 import Avatar from '../../components/Avatar'
-var limit = 0;
+
+// 初始加载的帖子数量
+const initialLimit = 10;
+let limit = initialLimit;
+
 const HomeScreen = () => {
     const {user, setAuth} = useAuth();
     const router = useRouter();
     const [posts, setPosts] = useState([]);
     const [hasMore, setHasMore] = useState(true);
+    const [isLoading, setIsLoading] = useState(false); // 添加加载状态
     const [notificationCount, setNotificationCount] = useState(0);
 
     // const onLogout = async () => {
@@ -90,7 +95,8 @@ const HomeScreen = () => {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `receiverId=eq.${user.id}`, }, handleNewNotification)
       .subscribe();
 
-      // getPosts();
+      // 首次加载帖子
+      getPosts();
 
       return ()=>{
         supabase.removeChannel(postChannel);
@@ -100,14 +106,37 @@ const HomeScreen = () => {
     },[]);
     
     const getPosts = async ()=>{
-
-      if(!hasMore) return null; // if no more posts then don't call the api
-      limit = limit+10; // get 10 more posts everytime
+      // 如果已经没有更多数据或者正在加载中，直接返回
+      if(!hasMore || isLoading) return;
+      
+      setIsLoading(true);
       console.log('fetching posts: ', limit);
-      let res = await fetchPosts(limit);
-      if(res.success){
-        if(posts.length==res.data.length) setHasMore(false);
-        setPosts(res.data);
+      
+      try {
+        let res = await fetchPosts(limit);
+        if(res.success){
+          // 如果获取的数据数量与当前显示的一样，说明没有更多数据了
+          if(posts.length > 0 && posts.length === res.data.length) {
+            setHasMore(false);
+          } else {
+            setPosts(res.data);
+            // 如果返回的数据少于请求的数量，也说明没有更多数据了
+            if(res.data.length < limit) {
+              setHasMore(false);
+            } else {
+              // 否则增加下次加载的数量
+              limit += initialLimit;
+            }
+          }
+        } else {
+          // 请求失败时也设置没有更多数据
+          setHasMore(false);
+        }
+      } catch (error) {
+        console.error('Error fetching posts:', error);
+        setHasMore(false);
+      } finally {
+        setIsLoading(false);
       }
     }
 
@@ -117,7 +146,7 @@ const HomeScreen = () => {
         {/* header */}
         <View style={styles.header}>
           <Pressable>
-            <Text style={styles.title}>LinkUp</Text>
+            <Text style={styles.title}>帖子</Text>
           </Pressable>
           <View style={styles.icons}>
             <Pressable onPress={()=> {
@@ -159,18 +188,35 @@ const HomeScreen = () => {
             router={router} 
           />}
           onEndReached={() => {
-            getPosts();
-            console.log('got to the end');
+            if (hasMore && !isLoading) {
+              getPosts();
+              console.log('got to the end');
+            }
           }}
-          onEndReachedThreshold={0} //  Specifies how close to the bottom the user must scroll before, 0 -> 1
-          ListFooterComponent={hasMore? (
-              <View style={{marginVertical: posts.length==0? 200: 30}}>
-                <Loading />
-              </View>
-            ):(
-              <View style={{marginVertical: 30}}>
-                <Text style={styles.noPosts}>No more posts</Text>
-              </View>
+          onEndReachedThreshold={0.5} // 提前触发加载更多，避免用户滚动太快
+          ListFooterComponent={
+            posts.length > 0 ? (
+              isLoading ? (
+                <View style={{marginVertical: 30}}>
+                  <Loading />
+                </View>
+              ) : (
+                !hasMore && (
+                  <View style={{marginVertical: 30}}>
+                    <Text style={styles.noPosts}>没有更多帖子了</Text>
+                  </View>
+                )
+              )
+            ) : (
+              isLoading ? (
+                <View style={{marginVertical: 200}}>
+                  <Loading />
+                </View>
+              ) : (
+                <View style={{marginVertical: 200}}>
+                  <Text style={styles.noPosts}>暂无帖子</Text>
+                </View>
+              )
             )
           }
         />

@@ -1,50 +1,50 @@
-# Welcome to your Expo app 👋
+# 欢迎使用你的Expo应用 👋
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+这是一个使用[`create-expo-app`](https://www.npmjs.com/package/create-expo-app)创建的[Expo](https://expo.dev)项目。
 
-## Get started
+## 开始使用
 
-1. Install dependencies
+1. 安装依赖
 
    ```bash
    npm install
    ```
 
-2. Start the app
+2. 启动应用
 
    ```bash
     npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+在输出中，你会找到以下打开应用的选项：
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- [开发构建版](https://docs.expo.dev/develop/development-builds/introduction/)
+- [Android模拟器](https://docs.expo.dev/workflow/android-studio-emulator/)
+- [iOS模拟器](https://docs.expo.dev/workflow/ios-simulator/)
+- [Expo Go](https://expo.dev/go)，一个用于尝试Expo应用开发的有限沙盒环境
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+你可以通过编辑**app**目录中的文件开始开发。这个项目使用[基于文件的路由](https://docs.expo.dev/router/introduction)。
 
-## Get a fresh project
+## 获取一个全新项目
 
-When you're ready, run:
+当你准备好时，运行：
 
 ```bash
 npm run reset-project
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+这个命令会将初始代码移动到**app-example**目录，并创建一个空白的**app**目录，你可以在这里开始开发。
 
-## Learn more
+## 了解更多
 
-To learn more about developing your project with Expo, look at the following resources:
+要了解更多关于使用Expo开发项目的信息，请查看以下资源：
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- [Expo文档](https://docs.expo.dev/)：学习基础知识，或通过我们的[指南](https://docs.expo.dev/guides)探索高级主题。
+- [学习Expo教程](https://docs.expo.dev/tutorial/introduction/)：按照分步教程创建一个可在Android、iOS和Web上运行的项目。
 
-## Join the community
+## 加入社区
 
-Join our community of developers creating universal apps.
+加入我们的开发者社区，共同创建通用应用。
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- [GitHub上的Expo](https://github.com/expo/expo)：查看我们的开源平台并做出贡献。
+- [Discord社区](https://chat.expo.dev)：与Expo用户聊天并提问。
