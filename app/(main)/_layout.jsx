@@ -66,11 +66,10 @@ export default function MainLayout() {
 const styles = StyleSheet.create({
   tabBar: {
     height: hp(7),
-    paddingBottom: hp(0.8),
-    paddingTop: hp(0.8),
+    paddingBottom: hp(1),
+    paddingTop: hp(0.5),
     flexDirection: 'row',
     justifyContent: 'space-around',
-    alignItems: 'center',
     borderTopWidth: 1,
     borderTopColor: theme.colors.gray,
     backgroundColor: '#fff'
