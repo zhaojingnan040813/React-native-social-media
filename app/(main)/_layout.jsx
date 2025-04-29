@@ -81,6 +81,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    bottom: hp(1.5)
+    transform: [{ translateY: hp(0.5) }]
   }
 }) 
