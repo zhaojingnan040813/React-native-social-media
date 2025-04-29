@@ -156,7 +156,7 @@ const PostDetails = () => {
     
   return (
     <ScreenWrapper bg="white">
-        <View style={styles.container}>
+    <View style={styles.container}>
             <Header title="帖子详情" />
             {/* <BackButton router={router} /> */}
             {
@@ -175,15 +175,15 @@ const PostDetails = () => {
                                 contentContainerStyle={{gap: 10, paddingBottom: 30}}
                                 showsVerticalScrollIndicator={true}
                                 ListHeaderComponent={<>
-                                    <PostCard 
+            <PostCard
                                         item={post}
-                                        currentUser={user}
+                currentUser={user}
                                         showMoreIcon={false}
-                                        router={router}
-                                        showDelete={true}
-                                        onDelete={onDeletePost}
-                                        onEdit={onEditPost}
-                                    />
+                router={router} 
+                showDelete={true}
+                onDelete={onDeletePost}
+                onEdit={onEditPost}
+            />
                                     <View style={styles.divider} />
 
                                     <Text style={styles.subtitle}>评论</Text>
@@ -198,32 +198,32 @@ const PostDetails = () => {
                             />
 
 
-                            {/* comment input */}
+            {/* comment input */}
                             <View style={styles.commentInput}>
                                 <TextInput 
                                     placeholder='写下您的评论...'
                                     style={styles.input}
                                     value={comment}
                                     onChangeText={(val)=>setComment(val)}
-                                />
+                />
                                 {
                                     sending? (
                                         <View style={styles.sendButton}>
-                                            <Loading size="small" />
-                                        </View>
+                            <Loading size="small" />
+                        </View>
                                     ): (
                                         <Pressable style={styles.sendButton} onPress={onNewComment}>
                                             <Icon name="send" size={hp(3)} color={comment? theme.colors.primary: theme.colors.textLight} />
                                         </Pressable>
-                                    )
-                                }
-                                
-                            </View>
+                    )
+                }
+                
+            </View>
                         </KeyboardAvoidingView>
                     )
-                )
-            }
-        </View>
+                    )
+                }
+            </View>
     </ScreenWrapper>
   )
 }

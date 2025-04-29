@@ -48,7 +48,7 @@ const RichTextEditor = ({
         ref={editorRef}
         containerStyle={styles.rich}
         editorStyle={styles.contentStyle}
-        placeholder={"What's on your mind?"}
+        placeholder={"这是一个富文本编辑器,在这可以写下您的帖子..."}
         onChange={onChange}
         // initialContentHTML={'Hello <b>World</b> <p>this is a new paragraph</p> <p>this is another new paragraph</p>'}
         editorInitializedCallback={() => {}}

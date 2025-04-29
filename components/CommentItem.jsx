@@ -8,7 +8,7 @@ import { getUserImageSrc } from '../services/imageService'
 import Avatar from './Avatar'
 
 const CommentItem = ({
-    item, 
+    item,
     currentUser, 
     canDelete,
     onDelete,
@@ -41,7 +41,7 @@ const CommentItem = ({
   return (
     <View style={[styles.container, highlight && styles.highlight]}>
         {/* user */}
-        <Avatar 
+        <Avatar
             uri={item.user?.image} 
             style={{marginTop: 5}} 
             size={hp(4.5)}

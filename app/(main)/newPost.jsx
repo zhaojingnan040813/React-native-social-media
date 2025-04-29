@@ -191,7 +191,7 @@ const NewPost = () => {
             )
           }   
           <View style={styles.media}>
-            <Text style={styles.addImageText}>添加到您的帖子</Text>
+            <Text style={styles.addImageText}>您还可以传图片或视频</Text>
             <View style={styles.mediaIcons}>
               <TouchableOpacity onPress={()=> onPick(true)}>
                 <Icon name="image" size={30} color={theme.colors.dark} />

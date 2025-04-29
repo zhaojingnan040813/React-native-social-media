@@ -15,8 +15,8 @@ const login = () => {
     const {setAuth, setUserData} = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [loading, setLoading] = useState(false);
-
+  const [loading, setLoading] = useState(false);
+  
     const onLogin = async ()=>{
         // login logic
         if(!email.trim() || !password.trim()){
@@ -24,7 +24,7 @@ const login = () => {
             return null;
         }
 
-        setLoading(true);
+    setLoading(true);
         const {error, data} =  await supabase.auth.signInWithPassword({
             email,
             password
@@ -46,8 +46,8 @@ const login = () => {
     // 忘记密码弹窗提示
     const handleForgotPassword = () => {
         Alert.alert('提示', '目前忘记密码功能正在开发中');
-    }
-    
+}
+
   return (
     <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -61,27 +61,27 @@ const login = () => {
                         style={styles.logo}
                         contentFit="contain"
                     />
-                </View>
+        </View>
                 <View style={styles.content}>
                     <Text style={styles.title}>登录</Text>
                     <View style={styles.inputs}>
-                        <Input 
+          <Input
                             placeholder='邮箱'
-                            placeholderTextColor={theme.colors.textLight}
+            placeholderTextColor={theme.colors.textLight}
                             onChangeText={setEmail}
                             value={email}
-                        />
-                        <Input 
+          />
+          <Input 
                             placeholder='密码'
                             placeholderTextColor={theme.colors.textLight}
                             onChangeText={setPassword}
                             value={password}
-                            secureTextEntry
+            secureTextEntry
                         />
                         <TouchableOpacity onPress={handleForgotPassword}>
                             <Text style={styles.forgotPassword}>忘记密码?</Text>
                         </TouchableOpacity>
-                    </View>
+        </View>
 
                     <View style={styles.btnContainer}>
                         <Button 
@@ -96,8 +96,8 @@ const login = () => {
                             </TouchableOpacity>
                         </View>
                     </View>
-                </View>
-            </View>
+        </View>
+      </View>
         </ScrollView>
     </KeyboardAvoidingView>
   )
@@ -108,12 +108,12 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#fff'
     },
-    container: {
+  container: {
         flexGrow: 1,
         backgroundColor: '#fff'
     },
     contentWrapper: {
-        flex: 1,
+    flex: 1,
         justifyContent: 'center',
         paddingTop: hp(10), // 向下移动整体内容
         paddingBottom: hp(10)
@@ -132,18 +132,18 @@ const styles = StyleSheet.create({
         borderRadius: wp(2)
     },
     title: {
-        fontSize: hp(4),
-        color: theme.colors.text,
+    fontSize: hp(4),
+    color: theme.colors.text,
         fontWeight: '600'
     },
     inputs: {
         gap: 16,
         marginVertical: hp(4),
         marginTop: hp(6)
-    },
+  },
     btnContainer: {
         gap: 30,
-    },
+  },
     switchMode: {
         flexDirection: 'row',
         gap: 2,
@@ -151,8 +151,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center'
     },
     switchModeText: {
-        color: theme.colors.text
-    },
+    color: theme.colors.text
+  },
     signUpText: {
         color: theme.colors.primary,
         fontWeight: theme.fonts.medium
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
         textAlign: 'right',
         marginTop: -5,
         marginBottom: 10
-    }
+  }
 })
 
 export default login

@@ -62,7 +62,7 @@ const EditProfile = () => {
     let userData = {...user};
     let {name, phoneNumber, address, image, bio} = userData;
     if(!name || !phoneNumber || !address || !image || !bio){
-        Alert.alert('Profile', "Please fill all the fields");
+        Alert.alert('个人资料', "目前只支持填写所有字段后提交修改");
         return;
     }
     
@@ -89,7 +89,7 @@ const EditProfile = () => {
     <ScreenWrapper bg="white">
         <View style={styles.container}>
             <ScrollView style={{flex: 1}}>   
-                <Header title="Edit Profile" />
+                <Header title="编辑个人资料" />
                
                 {/* form */}
                 <View style={styles.form}>
@@ -101,32 +101,32 @@ const EditProfile = () => {
                         </Pressable>
                     </View>
                     <Text style={{fontSize: hp(1.5), color: theme.colors.text}}>
-                        Please fill your profile details
+                        请完善您的个人资料信息
                     </Text>
                     <Input
                       icon={<Icon name="user" size={26} />}
-                      placeholder='Enter your name'
+                      placeholder='输入您的姓名'
                       placeholderTextColor={theme.colors.textLight}
                       value={user.name}
                       onChangeText={value=> setUser({...user, name: value})}
                     />
                     <Input
                       icon={<Icon name="call" size={26} />}
-                      placeholder='Enter your phone number'
+                      placeholder='输入您的电话号码'
                       placeholderTextColor={theme.colors.textLight}
                       value={user.phoneNumber}
                       onChangeText={value=> setUser({...user, phoneNumber: value})}
                     />
                     <Input
                       icon={<Icon name="location" size={26} />}
-                      placeholder='Enter your address'
+                      placeholder='输入您的地址'
                       placeholderTextColor={theme.colors.textLight}
                       value={user.address}
                       onChangeText={value=> setUser({...user, address: value})}
                     />
 
                     <Input
-                      placeholder='Enter your bio'
+                      placeholder='输入您的个人简介'
                       placeholderTextColor={theme.colors.textLight}
                       onChangeText={value=> setUser({...user, bio: value})}
                       multiline={true}
@@ -135,7 +135,7 @@ const EditProfile = () => {
                     />
 
                     {/* button */}
-                    <Button title="Update" loading={loading} onPress={onSubmit} />
+                    <Button title="更新" loading={loading} onPress={onSubmit} />
                 </View>
                     
             </ScrollView>

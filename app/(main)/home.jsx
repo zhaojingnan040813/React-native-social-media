@@ -108,18 +108,18 @@ const HomeScreen = () => {
     const getPosts = async ()=>{
       // 如果已经没有更多数据或者正在加载中，直接返回
       if(!hasMore || isLoading) return;
-      
+
       setIsLoading(true);
       console.log('fetching posts: ', limit);
       
       try {
-        let res = await fetchPosts(limit);
-        if(res.success){
+      let res = await fetchPosts(limit);
+      if(res.success){
           // 如果获取的数据数量与当前显示的一样，说明没有更多数据了
           if(posts.length > 0 && posts.length === res.data.length) {
             setHasMore(false);
           } else {
-            setPosts(res.data);
+        setPosts(res.data);
             // 如果返回的数据少于请求的数量，也说明没有更多数据了
             if(res.data.length < limit) {
               setHasMore(false);
@@ -189,8 +189,8 @@ const HomeScreen = () => {
           />}
           onEndReached={() => {
             if (hasMore && !isLoading) {
-              getPosts();
-              console.log('got to the end');
+            getPosts();
+            console.log('got to the end');
             }
           }}
           onEndReachedThreshold={0.5} // 提前触发加载更多，避免用户滚动太快
@@ -198,11 +198,11 @@ const HomeScreen = () => {
             posts.length > 0 ? (
               isLoading ? (
                 <View style={{marginVertical: 30}}>
-                  <Loading />
-                </View>
+                <Loading />
+              </View>
               ) : (
                 !hasMore && (
-                  <View style={{marginVertical: 30}}>
+              <View style={{marginVertical: 30}}>
                     <Text style={styles.noPosts}>没有更多帖子了</Text>
                   </View>
                 )
@@ -215,7 +215,7 @@ const HomeScreen = () => {
               ) : (
                 <View style={{marginVertical: 200}}>
                   <Text style={styles.noPosts}>暂无帖子</Text>
-                </View>
+              </View>
               )
             )
           }

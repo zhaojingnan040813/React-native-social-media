@@ -47,14 +47,14 @@ const Profile = () => {
 }
 
   const handleLogout = ()=>{
-    Alert.alert('Confirm', 'Are you sure you want log out?', [
+    Alert.alert('确认', '您确定要退出登录吗？', [
         {
-          text: 'Cancel',
+          text: '取消',
           onPress: () => console.log('Cancel'),
           style: 'cancel',
         },
         {
-            text: 'Logout', 
+            text: '退出登录', 
             onPress: () => onLogout(),
             style: 'destructive'
         },
@@ -101,7 +101,7 @@ const UserHeader = ({user, handleLogout, router})=>{
   return (
     <View style={{flex: 1, backgroundColor:'white'}}> 
         <View>
-          <Header title="Profile" mb={30} />
+          <Header title="个人资料" mb={30} />
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <Icon name="logout" size={26} color={theme.colors.rose} />
           </TouchableOpacity>
