@@ -1,99 +1,120 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native'
-import React from 'react'
+import { View, Text, StyleSheet, Pressable, Alert } from 'react-native'
+import React, { useEffect, useState } from 'react'
+import { Image } from 'expo-image'
+import { theme } from '../constants/theme'
+import { hp } from '../helpers/common'
+import moment from 'moment'
+import { getUserImageSrc } from '../services/imageService'
 import Avatar from './Avatar'
-import moment from 'moment';
-import { theme } from '../constants/theme';
-import { hp } from '../helpers/common';
-import Icon from '../assets/icons';
 
 const CommentItem = ({
-    item,
-    canDelete=false,
-    onDelete=()=>{},
-    highlight = false,
+    item, 
+    currentUser, 
+    canDelete,
+    onDelete,
+    highlight
 }) => {
+    const [showDelete, setShowDelete] = useState(false);
+    const [pressedInfo, setPressedInfo] = useState(false);
+    const createdAt = moment(item.created_at).fromNow();
 
-    const createdAt = moment(item?.created_at).format('MMM D');
-
-    const handleDelete = ()=>{
-        Alert.alert('Confirm', 'Are you sure you want to do this?', [
+    const deleteModal = ()=>{
+        Alert.alert('确认', '您确定要删除此评论吗?', [
             {
-              text: 'Cancel',
-              onPress: () => console.log('Cancel delete'),
+              text: '取消',
+              onPress: () => console.log('取消删除'),
               style: 'cancel',
             },
             {
-                text: 'Delete', 
+                text: '删除', 
                 onPress: () => onDelete(item),
                 style: 'destructive'
             },
         ]);
     }
+
+
+    useEffect(()=>{
+        if(currentUser.id==item?.userId) setShowDelete(true);
+        return ()=>{}
+    },[currentUser]);
   return (
-    <View style={styles.container}>
-        <Avatar
-            uri={item?.user?.image}
+    <View style={[styles.container, highlight && styles.highlight]}>
+        {/* user */}
+        <Avatar 
+            uri={item.user?.image} 
+            style={{marginTop: 5}} 
+            size={hp(4.5)}
+            rounded={theme.radius.md}
         />
-        <View style={[styles.content, highlight && styles.highlight]}>
+
+        <View style={styles.body}>
             <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-                <View style={styles.nameContainer}>
-                    <Text style={styles.text}>{item?.user?.name}</Text>
-                    <Text>•</Text>
-                    <Text style={[styles.text, {color: theme.colors.textLight}]}>{createdAt}</Text>
+                <Text style={styles.username}>{item.user?.name}</Text>
+                <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                    <Text style={styles.time}>{createdAt}</Text>
+                    {
+                        showDelete && (
+                            <Pressable onPress={deleteModal}>
+                                <Text style={styles.time}>删除</Text>
+                            </Pressable>
+                        )
+                    }
                 </View>
-                {
-                    canDelete && (
-                        <TouchableOpacity onPress={handleDelete}>
-                            <Icon name="delete" size={20} color={theme.colors.rose} />
-                        </TouchableOpacity>
-                    )
-                }
             </View>
-            
-            <Text style={[styles.text, {fontWeight: 'normal'}]}>
-                {item.text}
+            <Text style={styles.comment}>
+                {item.body}
             </Text>
         </View>
-
     </View>
   )
 }
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
         flexDirection: 'row',
-        gap: 7,
+        gap: 8,
+        borderColor: theme.colors.gray,
+        paddingTop: 4,
+        borderRadius: theme.radius.lg,
+        borderCurve: 'continuous'
     },
-    content: {
-        backgroundColor: 'rgba(0,0,0,0.06)',
-        flex: 1,
-        gap: 5,
-        paddingHorizontal: 14,
-        paddingVertical: 10,
+    avatar: {
+        height: hp(4.5),
+        width: hp(4.5),
         borderRadius: theme.radius.md,
         borderCurve: 'continuous',
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.1)',
+        marginTop: 5
+    },
+    body: {
+        flex: 1,
+        paddingVertical: 8,
+        paddingHorizontal: 10,
+        borderWidth: 1,
+        borderColor: theme.colors.gray,
+        borderRadius: theme.radius.lg,
+        backgroundColor: theme.colors.card,
+        gap: 5
+    },
+    username: {
+        color: theme.colors.textDark,
+        fontWeight: theme.fonts.medium
+    },
+    comment: {
+        color: theme.colors.text,
     },
     highlight: {
-        borderWidth: 0.2,
-        backgroundColor: 'white',
-        borderColor: theme.colors.dark,
-        shadowColor: theme.colors.dark,
-        shadowOffset: {width: 0, height: 0},
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 5
+        borderWidth: 1,
+        padding: 4,
+        borderColor: theme.colors.primaryLight,
+        backgroundColor: theme.colors.card,
     },
-    nameContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 3,
-    },
-    text: {
-        fontSize: hp(1.6),
-        fontWeight: theme.fonts.medium,
-        color: theme.colors.textDark,
+    time: {
+        color: theme.colors.textLight,
+        fontSize: hp(1.6)
     }
 })
 
-export default CommentItem;
+export default CommentItem

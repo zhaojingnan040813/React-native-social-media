@@ -68,7 +68,7 @@ const NewPost = () => {
 
     // validate data
     if(!bodyRef.current && !file){
-      Alert.alert('Post', "Please choose an image or add post body!");
+      Alert.alert('提示', "请选择图片或添加帖子内容!");
       return;
     }
 
@@ -88,7 +88,7 @@ const NewPost = () => {
       editorRef.current?.setContentHTML('');
       router.back();
     }else{
-      Alert.alert('Post', res.msg);
+      Alert.alert('帖子', res.msg);
     }
 
   }
@@ -129,7 +129,7 @@ const NewPost = () => {
   return (
     <ScreenWrapper bg="white">
       <View style={styles.container}>
-        <Header title="Create Post" mb={15} />
+        <Header title="创建帖子" mb={15} />
           
         <ScrollView contentContainerStyle={{gap: 20}}>
           {/* header */}
@@ -142,7 +142,7 @@ const NewPost = () => {
               {/* <Image source={getUserImageSrc(user?.image)} style={styles.avatar} /> */}
               <View style={{gap: 2}}>
                 <Text style={styles.username}>{user && user.name}</Text>
-                <Text style={styles.publicText}>Public</Text>
+                <Text style={styles.publicText}>公开</Text>
               </View>
           </View>
           <View style={styles.textEditor}>
@@ -191,7 +191,7 @@ const NewPost = () => {
             )
           }   
           <View style={styles.media}>
-            <Text style={styles.addImageText}>Add to your post</Text>
+            <Text style={styles.addImageText}>添加到您的帖子</Text>
             <View style={styles.mediaIcons}>
               <TouchableOpacity onPress={()=> onPick(true)}>
                 <Icon name="image" size={30} color={theme.colors.dark} />
@@ -205,7 +205,7 @@ const NewPost = () => {
         </ScrollView>
         <Button 
           buttonStyle={{height: hp(6.2)}} 
-          title={post && post.id? "Update": "Post"}
+          title={post && post.id? "更新": "发布"}
           loading={loading}
           hasShadow={false} 
           onPress={onSubmit}

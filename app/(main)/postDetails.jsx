@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Pressable, Keyboard, Platform } from 'react-native'
 import React, { useEffect, useRef, useState } from 'react'
 import PostCard from '../../components/PostCard'
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -14,6 +14,9 @@ import { getUserData } from '../../services/userService';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
 import { createNotification } from '../../services/notificationService';
+import ScreenWrapper from '../../components/ScreenWrapper';
+import Header from '../../components/Header';
+import { FlatList } from 'react-native-gesture-handler';
 
 const PostDetails = () => {
     const {postId, commentId} = useLocalSearchParams();
@@ -27,6 +30,9 @@ const PostDetails = () => {
     const commentRef = useRef("");
     const inputRef = useRef(null);
     const [startLoading, setStartLoading] = useState(true);
+    const [comment, setComment] = useState(''); 
+    const [sending, setSending] = useState(false);
+    const [showDelete, setShowDelete] = useState(false);
     // console.log('got item: ', item);
 
     const handleNewComment = async payload=>{
@@ -149,95 +155,124 @@ const PostDetails = () => {
     }
     
   return (
-    <View style={styles.container}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.list}>
-            <PostCard
-                item={{...post, comments: [{count: post.comments.length}]}} 
-                currentUser={user}
-                router={router} 
-                showMoreIcon={false}
-                hasShadow={false}
-                showDelete={true}
-                onDelete={onDeletePost}
-                onEdit={onEditPost}
-            />
+    <ScreenWrapper bg="white">
+        <View style={styles.container}>
+            <Header title="帖子详情" />
+            {/* <BackButton router={router} /> */}
+            {
+                loading? (
+                    <View style={{marginTop: hp(20)}}>
+                        <Loading />
+                    </View>
+                ): (
+                    post && (
+                        <KeyboardAvoidingView
+                            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                            style={{flex: 1}}
+                        >
+                            <FlatList
+                                data={post?.comments || []}
+                                contentContainerStyle={{gap: 10, paddingBottom: 30}}
+                                showsVerticalScrollIndicator={true}
+                                ListHeaderComponent={<>
+                                    <PostCard 
+                                        item={post}
+                                        currentUser={user}
+                                        showMoreIcon={false}
+                                        router={router}
+                                        showDelete={true}
+                                        onDelete={onDeletePost}
+                                        onEdit={onEditPost}
+                                    />
+                                    <View style={styles.divider} />
 
-            {/* comment input */}
-            <View style={styles.inputContainer}>
-                <Input
-                    inputRef={inputRef}
-                    placeholder='Type comment...'
-                    placeholderTextColor={theme.colors.textLight}
-                    onChangeText={value=> commentRef.current=value}
-                    containerStyle={{flex: 1, height: hp(6.2), borderRadius: theme.radius.xl}}
-                />
+                                    <Text style={styles.subtitle}>评论</Text>
 
-                {
-                    loading? (
-                        <View style={styles.loading}>
-                            <Loading size="small" />
-                        </View>
-                    ):(
-                        <TouchableOpacity onPress={onNewComment} style={styles.sendIcon}>
-                            <Icon name="send" color={theme.colors.primaryDark} />
-                        </TouchableOpacity>
+                                </>}
+                                renderItem={({item})=> <CommentItem 
+                                    item={item} 
+                                    currentUser={user}
+                                    onDelete={onDeleteComment}
+                                />}
+                                keyExtractor={(item, idx)=> item?.id?.toString()}
+                            />
+
+
+                            {/* comment input */}
+                            <View style={styles.commentInput}>
+                                <TextInput 
+                                    placeholder='写下您的评论...'
+                                    style={styles.input}
+                                    value={comment}
+                                    onChangeText={(val)=>setComment(val)}
+                                />
+                                {
+                                    sending? (
+                                        <View style={styles.sendButton}>
+                                            <Loading size="small" />
+                                        </View>
+                                    ): (
+                                        <Pressable style={styles.sendButton} onPress={onNewComment}>
+                                            <Icon name="send" size={hp(3)} color={comment? theme.colors.primary: theme.colors.textLight} />
+                                        </Pressable>
+                                    )
+                                }
+                                
+                            </View>
+                        </KeyboardAvoidingView>
                     )
-                }
-                
-            </View>
-            
-
-
-            {/* comment list */}
-            
-            <View style={{marginVertical: 15, gap: 17}}>
-                {
-                    post?.comments?.map(comment=> 
-                        <CommentItem 
-                                item={comment} 
-                                canDelete={user.id==comment.userId || user.id==post.userId}
-                                onDelete={onDeleteComment}
-                                key={comment.id.toString()} 
-                                highlight={comment.id==commentId}
-                        />
-                    )
-                }
-                {
-                    post?.comments?.length==0 && (
-                        <Text style={{color: theme.colors.text, marginLeft: 5,}}>Be first to comment!</Text>
-                    )
-                }
-            </View>
-            
-        </ScrollView>
-      
-    </View>
+                )
+            }
+        </View>
+    </ScreenWrapper>
   )
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: 'white',
-        paddingVertical: wp(7),
+        paddingHorizontal: wp(4),
+        paddingBottom: 20,
     },
-    inputContainer: {
+    divider: {
+        height: 1.5,
+        backgroundColor: theme.colors.gray,
+        marginTop: 20
+    },
+    subtitle: {
+        color: theme.colors.text,
+        fontSize: hp(2.6),
+        fontWeight: theme.fonts.bold,
+        marginTop: 20,
+        marginBottom: 15,
+    },
+    commentInput: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10
+        backgroundColor: theme.colors.card,
+        paddingVertical: 10,
+        gap: 10,
+        paddingHorizontal: 10,
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.gray
     },
-    list: {
-        paddingHorizontal: wp(4),
-    },
-    sendIcon: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 0.8,
-        borderColor: theme.colors.primary,
+    input: {
+        flex: 1,
+        backgroundColor: 'white',
+        paddingVertical: Platform.OS=='ios'? 12: 6,
+        paddingHorizontal: 15,
         borderRadius: theme.radius.lg,
-        borderCurve: 'continuous',
-        height: hp(5.8),
-        width: hp(5.8)
+        fontWeight: theme.fonts.medium,
+        fontSize: hp(1.9),
+        borderWidth: 1,
+        borderColor: theme.colors.gray
+    },
+    sendButton: {
+        width: hp(5),
+        height: hp(5),
+        borderRadius: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     center: {
         flex: 1, 

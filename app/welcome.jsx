@@ -21,24 +21,22 @@ const WelcomePage = () => {
 
         {/* title */}
         <View style={{gap: 20}}>
-            <Text style={styles.title}>帖子</Text>
-            <Text style={styles.punchline}>
-              Where every thought finds a home and every image tells a story.
-            </Text>
+            <Text style={styles.title}>社交媒体应用</Text>
+            <Text style={styles.subtitle}>与朋友们保持联系</Text>
         </View>
 
         <View style={styles.footer}>
           <Button 
-            title="Getting Started" 
+            title="登录" 
             buttonStyle={{marginHorizontal: wp(3)}} 
-            onPress={()=> router.push('signUp')}
+            onPress={()=> router.push('/login')}
           />
           <View style={styles.bottomTextContainer}>
               <Text style={styles.loginText}>
                 Already have an account! 
               </Text>
-              <Pressable onPress={()=> router.push('/login')}>
-                <Text style={[styles.loginText, {color: theme.colors.primaryDark, fontWeight: theme.fonts.semibold}]}>Login</Text>
+              <Pressable onPress={()=> router.push('/signUp')}>
+                <Text style={[styles.loginText, {color: theme.colors.primaryDark, fontWeight: theme.fonts.semibold}]}>创建一个账户</Text>
               </Pressable>
           </View>
           
@@ -67,11 +65,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: theme.fonts.extraBold
   },
-  punchline: {
+  subtitle: {
+    color: theme.colors.textLight,
+    fontSize: hp(1.8),
     textAlign: 'center',
-    paddingHorizontal: wp(10),
-    fontSize: hp(1.7),
-    color: theme.colors.text
+    marginTop: 5,
   },
   footer: {
     gap: 30,

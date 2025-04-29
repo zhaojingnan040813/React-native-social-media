@@ -72,7 +72,7 @@ const PostCard = ({
       let res = await removePostLike(item?.id, currentUser?.id);
       console.log('res: ', res);
       if(!res.success){
-        Alert.alert('Post', 'Something went wrong!')
+        Alert.alert('帖子', '出现了问题！')
       }
     }else{
       let data = {
@@ -84,7 +84,7 @@ const PostCard = ({
       let res = await createPostLike(data);
       console.log('res: ', res);
       if(!res.success){
-        Alert.alert('Post', 'Something went wrong!')
+        Alert.alert('帖子', '出现了问题！')
       }
     }
     
@@ -103,14 +103,14 @@ const PostCard = ({
   }
 
   const handlePostDelete = ()=>{
-    Alert.alert('Confirm', 'Are you sure you want to do this?', [
+    Alert.alert('确认', '您确定要删除这个帖子吗?', [
         {
-          text: 'Cancel',
-          onPress: () => console.log('Cancel delete'),
+          text: '取消',
+          onPress: () => console.log('取消删除'),
           style: 'cancel',
         },
         {
-            text: 'Delete', 
+            text: '删除', 
             onPress: () => onDelete(item),
             style: 'destructive'
         },

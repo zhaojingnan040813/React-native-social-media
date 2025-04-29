@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, Pressable, Alert } from 'react-native'
+import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, Pressable, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
 import React, { useRef, useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenWrapper from '../components/ScreenWrapper';
@@ -24,7 +24,7 @@ const SignUp = () => {
 
   const onSubmit = async ()=>{
         if(!nameRef.current || !emailRef.current || !passwordRef.current){
-            Alert.alert('Sign up', "Please fill all the fields!");
+            Alert.alert('注册', '请填写所有字段');
             return;
         }
 
@@ -49,115 +49,134 @@ const SignUp = () => {
         // console.log('session: ', session);
         // console.log('error: ', error);
     
-        if (error) Alert.alert('Sign up', error.message)
+        if (error) Alert.alert('注册失败', error.message)
         setLoading(false)
+
+        if (data?.user) {
+            await supabase
+            .from('users')
+            .insert([
+                { 
+                    id: data.user.id,
+                    name,
+                    email,
+                },
+            ]);
+            Alert.alert('注册成功', '请登录您的账户');
+            router.push('/login');
+        }
     }
 
   return (
-    <ScreenWrapper bg={'white'}>
-      <StatusBar style="dark" />
-      <View style={styles.container}>
-        {/* back button */}
-        <View>
-          <BackButton router={router} />
-        </View>
+    <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.wrapper}
+    >
+        <ScrollView
+            contentContainerStyle={styles.container}
+        >
+            <View style={styles.logoContainer}>
+                <Image 
+                    source={require('../assets/images/logo.png')}
+                    style={styles.logo}
+                />
+            </View>
+            <View style={styles.content}>
+                <Text style={styles.title}>注册</Text>
+                <View style={styles.inputs}>
+                    <Input
+                        icon={<Icon name="user" size={26} strokeWidth={1.6} />}
+                        placeholder='姓名'
+                        placeholderTextColor={theme.colors.textLight}
+                        onChangeText={value=> nameRef.current=value}
+                        value={nameRef.current}
+                    />
+                    <Input
+                        icon={<Icon name="mail" size={26} strokeWidth={1.6} />}
+                        placeholder='邮箱'
+                        placeholderTextColor={theme.colors.textLight}
+                        onChangeText={value=> emailRef.current=value}
+                        value={emailRef.current}
+                    />
+                    <Input 
+                        icon={<Icon name="lock" size={26} strokeWidth={1.6} />}
+                        secureTextEntry
+                        placeholder='密码'
+                        placeholderTextColor={theme.colors.textLight}
+                        onChangeText={value=> passwordRef.current=value}
+                        value={passwordRef.current}
+                    />
+                </View>
 
-        {/* welcome */}
-        <View>
-          <Text style={styles.welcomeText}>Lets's </Text>
-          <Text style={styles.welcomeText}>Get Started</Text>
-        </View>
-
-        {/* form */}
-        <View style={styles.form}>
-          <Text style={{fontSize: hp(1.5), color: theme.colors.text}}>
-            Please fill the details to create an account
-          </Text>
-          <Input
-            icon={<Icon name="user" size={26} strokeWidth={1.6} />}
-            placeholder='Enter your name'
-            placeholderTextColor={theme.colors.textLight}
-            onChangeText={value=> nameRef.current=value}
-          />
-          <Input
-            icon={<Icon name="mail" size={26} strokeWidth={1.6} />}
-            placeholder='Enter your email'
-            placeholderTextColor={theme.colors.textLight}
-            onChangeText={value=> emailRef.current=value}
-          />
-          <Input 
-            icon={<Icon name="lock" size={26} strokeWidth={1.6} />}
-            secureTextEntry
-            placeholder='Enter your password'
-            placeholderTextColor={theme.colors.textLight}
-            onChangeText={value=> passwordRef.current=value}
-          />
-
-          {/* button */}
-          <Button title="Sign up" loading={loading} onPress={onSubmit} />
-        </View>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Already have an account!
-          </Text>
-          <Pressable onPress={()=> router.navigate('/login')}>
-            <Text style={[styles.footerText, {color: theme.colors.primaryDark, fontWeight: theme.fonts.semibold}]}>Login</Text>
-          </Pressable>
-        </View>
-        
-      </View>
-      
-      
-    </ScreenWrapper>
+                <View style={styles.btnContainer}>
+                    <Button 
+                        title="注册" 
+                        onPress={onSubmit}
+                        loading={loading}
+                    />
+                    <View style={styles.switchMode}>
+                        <Text style={styles.switchModeText}>已有账号? </Text>
+                        <TouchableOpacity onPress={()=> router.replace('/login')}>
+                            <Text style={styles.signUpText}>登录</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </View>
+        </ScrollView>
+    </KeyboardAvoidingView>
   )
 }
 
 const styles = StyleSheet.create({
+  wrapper: {
+    flex: 1,
+    backgroundColor: '#fff'
+  },
   container: {
     flex: 1,
-    gap: 45,
-    paddingHorizontal: wp(5),
+    justifyContent: 'center',
+    backgroundColor: '#fff', 
+    paddingBottom: 120
   },
-  welcomeText:{
-    fontSize: hp(4),
-    fontWeight: theme.fonts.bold,
-    color: theme.colors.text,
-  },
-  form: {
-    gap: 25,
-  },
-  input: {
-    flexDirection: 'row',
-    borderWidth: 0.4,
-    borderColor: theme.colors.text,
-    borderRadius: theme.radius.xxl,
-    borderCurve: 'continuous',
-    padding: 18,
-    paddingHorizontal: 20,
-    gap: 15
-  },
-  forgotPassword: {
-    textAlign: 'right',
-    fontWeight: theme.fonts.semibold,
-    color: theme.colors.text
-  },
-  loginText: {
-    fontSize: hp(2.1),
-    color: 'white',
-    fontWeight: theme.fonts.bold,
-    letterSpacing: 0.5
-  },
-  footer:{
-    flexDirection: 'row',
+  logoContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 5,
+    marginTop: hp(5)
   },
-  footerText: {
-    textAlign: 'center',
+  logo: {
+    height: hp(20),
+    width: hp(20),
+    marginBottom: hp(1)
+  },
+  content: {
+    padding: wp(7),
+    borderRadius: wp(2)
+  },
+  title: {
+    fontSize: hp(4),
     color: theme.colors.text,
-    fontSize: hp(1.6)
+    fontWeight: '600'
+  },
+  inputs: {
+    gap: 16,
+    marginVertical: hp(4),
+    marginTop: hp(6)
+  },
+  btnContainer: {
+    gap: 30,
+  },
+  switchMode: {
+    flexDirection: 'row',
+    gap: 2,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  switchModeText: {
+    color: theme.colors.text
+  },
+  signUpText: {
+    color: theme.colors.primary,
+    fontWeight: theme.fonts.medium
   }
 })
 
