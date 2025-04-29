@@ -70,7 +70,7 @@ const PostCard = ({
       setLikes([...updatedLikes]);
 
       let res = await removePostLike(item?.id, currentUser?.id);
-      console.log('res: ', res);
+      // console.log('res: ', res);
       if(!res.success){
         Alert.alert('帖子', '出现了问题！')
       }
@@ -82,7 +82,7 @@ const PostCard = ({
 
       setLikes([...likes, data]);
       let res = await createPostLike(data);
-      console.log('res: ', res);
+      // console.log('res: ', res);
       if(!res.success){
         Alert.alert('帖子', '出现了问题！')
       }
@@ -106,7 +106,7 @@ const PostCard = ({
     Alert.alert('确认', '您确定要删除这个帖子吗?', [
         {
           text: '取消',
-          onPress: () => console.log('取消删除'),
+          onPress: () => {/* console.log('取消删除') */},
           style: 'cancel',
         },
         {
@@ -159,7 +159,11 @@ const PostCard = ({
       </View>
 
       {/* post image & body */}
-      <View style={styles.content}>
+      <TouchableOpacity 
+        activeOpacity={0.7} 
+        onPress={openPostDetails} 
+        style={styles.content}
+      >
         <View style={styles.postBody}>
           {
             item?.body && (
@@ -197,7 +201,7 @@ const PostCard = ({
             />
           )
         }
-      </View>
+      </TouchableOpacity>
 
       {/* like & comment */}
       <View style={styles.footer}>

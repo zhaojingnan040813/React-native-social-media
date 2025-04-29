@@ -42,7 +42,7 @@ const Profile = () => {
     setAuth(null);
     const {error} = await supabase.auth.signOut();
     if (error) {
-      Alert.alert("Error Signing Out User", error.message);
+      Alert.alert("退出登录失败", error.message);
     }
 }
 
@@ -50,7 +50,7 @@ const Profile = () => {
     Alert.alert('确认', '您确定要退出登录吗？', [
         {
           text: '取消',
-          onPress: () => console.log('Cancel'),
+          onPress: () => {/* console.log('Cancel') */},
           style: 'cancel',
         },
         {

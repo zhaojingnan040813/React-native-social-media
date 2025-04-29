@@ -80,16 +80,17 @@ const PostDetails = () => {
 
 
     const onNewComment = async ()=>{
-        if(!commentRef.current) return null;
+        if(!comment.trim()) return null;
+        
         let data = {
             userId: user?.id,
             postId: post?.id,
-            text: commentRef.current,
+            text: comment,
         };
 
-        setLoading(true);
+        setSending(true);
         let res = await createComment(data);
-        setLoading(false);
+        setSending(false);
         // console.log('result: ', res);
         if(res.success){
             if(user.id!=post.userId){
@@ -103,10 +104,10 @@ const PostDetails = () => {
                 createNotification(notify);
             }
 
-            inputRef?.current?.clear();
-            commentRef.current="";
+            setComment('');
+            commentRef.current = '';
         }else{
-            Alert.alert('Comment', res.msg);
+            Alert.alert('评论', res.msg);
         }
     }
 
@@ -204,7 +205,11 @@ const PostDetails = () => {
                                     placeholder='写下您的评论...'
                                     style={styles.input}
                                     value={comment}
-                                    onChangeText={(val)=>setComment(val)}
+                                    onChangeText={(val)=>{
+                                        setComment(val);
+                                        commentRef.current = val;
+                                    }}
+                                    ref={inputRef}
                 />
                                 {
                                     sending? (

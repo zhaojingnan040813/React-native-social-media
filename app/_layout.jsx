@@ -4,6 +4,7 @@ import { Stack, useRouter } from 'expo-router'
 import { AuthProvider, useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { getUserData } from '../services/userService'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 
 // 忽略所有与 react-native-render-html 相关的警告
 LogBox.ignoreLogs([
@@ -11,19 +12,28 @@ LogBox.ignoreLogs([
   'Warning: TRenderEngineProvider: Support for defaultProps will be removed',
   'Warning: MemoizedTNodeRenderer: Support for defaultProps will be removed',
   'Warning: TNodeChildrenRenderer: Support for defaultProps will be removed',
+  // 忽略更完整的错误信息
+  'Warning: TNodeChildrenRenderer: Support for defaultProps will be removed from function components in a future major release.',
+  'Warning: MemoizedTNodeRenderer: Support for defaultProps will be removed from function components in a future major release.',
+  'Warning: TRenderEngineProvider: Support for defaultProps will be removed from function components in a future major release.',
   // 忽略其他渲染库相关警告
   'Warning: TNodeChildrenRenderer',
   'Warning: MemoizedTNodeRenderer', 
-  'Warning: TRenderEngineProvider'
+  'Warning: TRenderEngineProvider',
+  // 忽略所有包含这些组件名的警告
+  '(NOBRIDGE) ERROR  Warning: TNodeChildrenRenderer',
+  '(NOBRIDGE) ERROR  Warning: MemoizedTNodeRenderer',
+  '(NOBRIDGE) ERROR  Warning: TRenderEngineProvider'
 ]);
 
 const _layout = () => {
     
   return (
-    <AuthProvider>
-        <MainLayout />
-    </AuthProvider>
-    
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
+          <MainLayout />
+      </AuthProvider>
+    </GestureHandlerRootView>
   )
 }
 
