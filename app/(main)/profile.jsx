@@ -88,7 +88,7 @@ const Profile = () => {
             </View>
           ):(
             <View style={{marginVertical: 30}}>
-              <Text style={styles.noPosts}>No more posts</Text>
+              <Text style={styles.noPosts}>您没有更多的帖子了</Text>
             </View>
           )
         }

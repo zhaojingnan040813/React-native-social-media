@@ -26,7 +26,7 @@ const Notifications = () => {
   return (
     <ScreenWrapper >
       <View style={styles.container}>
-        <Header title="Notifications" />
+        <Header title="通知" />
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listStyle}>
           {
@@ -42,7 +42,7 @@ const Notifications = () => {
           }
           {
             notifications.length==0 && (
-              <Text style={styles.noData}>No notifications yet</Text>
+              <Text style={styles.noData}>暂无通知</Text>
             )
           }
         </ScrollView>
