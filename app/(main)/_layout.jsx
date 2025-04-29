@@ -54,38 +54,11 @@ export default function MainLayout() {
           tabBarIcon: ({ color }) => <Icon name="user" size={24} color={color} />
         }}
       />
-
-      {/* 隐藏其他页面，但仍能通过导航访问 */}
-      <Tabs.Screen 
-        name="postDetails"
-        options={{
-          tabBarButton: () => null,
-        }}
-      />
-      <Tabs.Screen 
-        name="newPost"
-        options={{
-          tabBarButton: () => null,
-        }}
-      />
-      <Tabs.Screen 
-        name="editProfile"
-        options={{
-          tabBarButton: () => null,
-        }}
-      />
-      <Tabs.Screen 
-        name="notifications"
-        options={{
-          tabBarButton: () => null,
-        }}
-      />
-      <Tabs.Screen 
-        name="search"
-        options={{
-          tabBarButton: () => null,
-        }}
-      />
+      <Tabs.Screen name="postDetails" options={{ href: null }} />
+      <Tabs.Screen name="newPost" options={{ href: null }} />
+      <Tabs.Screen name="editProfile" options={{ href: null }} />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
+      <Tabs.Screen name="search" options={{ href: null }} />
     </Tabs>
   )
 }
@@ -95,6 +68,9 @@ const styles = StyleSheet.create({
     height: hp(7),
     paddingBottom: hp(0.8),
     paddingTop: hp(0.8),
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
     borderTopWidth: 1,
     borderTopColor: theme.colors.gray,
     backgroundColor: '#fff'
