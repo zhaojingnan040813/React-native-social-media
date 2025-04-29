@@ -21,7 +21,7 @@ import Icon from '../../assets/icons'
 const NewPost = () => {
   const {user} = useAuth();
   const post = useLocalSearchParams();
-  console.log('post: ', post);
+  // console.log('post: ', post);
   // const videoRef = useRef(null);
   const [file, setFile] = useState(null);
   const bodyRef = useRef('');
@@ -59,7 +59,7 @@ const NewPost = () => {
     let result = await ImagePicker.launchImageLibraryAsync(mediaConfig);
 
     if (!result.canceled) {
-      // console.log({...result.assets[0]});
+      // // console.log({...result.assets[0]});
       setFile(result.assets[0]);
     }
   };
@@ -123,7 +123,7 @@ const NewPost = () => {
     }
   }
 
-  console.log('file: ', file);
+  // console.log('file: ', file);
 
 
   return (

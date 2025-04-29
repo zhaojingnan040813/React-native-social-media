@@ -48,3 +48,6 @@ npm run reset-project
 
 - [GitHub上的Expo](https://github.com/expo/expo)：查看我们的开源平台并做出贡献。
 - [Discord社区](https://chat.expo.dev)：与Expo用户聊天并提问。
+
+
+后续我在开发一个页面，请选择你的方向，有前端，后端两个选项，然后会有一个转盘，会弹出来Vue , React , GO , Spring Boot 这样相关的文章

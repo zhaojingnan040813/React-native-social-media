@@ -37,7 +37,7 @@ const SignUp = () => {
 
       if (error) {
         Alert.alert('注册失败', error.message);
-        console.log('signup error: ', error);
+        // console.log('signup error: ', error);
       } else if (data?.user) {
         await supabase
           .from('users')

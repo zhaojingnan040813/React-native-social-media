@@ -37,7 +37,7 @@ const HomeScreen = () => {
     // }
 
     const handlePostEvent = async (payload)=>{
-      console.log('got post event: ', payload);
+      // console.log('got post event: ', payload);
       if(payload.eventType == 'INSERT' && payload?.new?.id){
         let newPost = {...payload.new};
         let res = await getUserData(newPost.userId);
@@ -69,7 +69,7 @@ const HomeScreen = () => {
     }
 
     const handleNewNotification = payload=>{
-      console.log('got new notification : ', payload);
+      // console.log('got new notification : ', payload);
       if(payload.eventType=='INSERT' && payload?.new?.id){
         setNotificationCount(prev=> prev+1);
       }
@@ -110,7 +110,7 @@ const HomeScreen = () => {
       if(!hasMore || isLoading) return;
 
       setIsLoading(true);
-      console.log('fetching posts: ', limit);
+      // console.log('fetching posts: ', limit);
       
       try {
       let res = await fetchPosts(limit);
@@ -190,7 +190,7 @@ const HomeScreen = () => {
           onEndReached={() => {
             if (hasMore && !isLoading) {
             getPosts();
-            console.log('got to the end');
+            // console.log('got to the end');
             }
           }}
           onEndReachedThreshold={0.5} // 提前触发加载更多，避免用户滚动太快

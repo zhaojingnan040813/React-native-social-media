@@ -34,7 +34,7 @@ const MainLayout = ()=>{
     useEffect(() => {
         // triggers automatically when auth state changes
         supabase.auth.onAuthStateChange((_event, session) => {
-        console.log('session: ', session?.user?.id);
+        // console.log('session: ', session?.user?.id);
         if (session) {
             setAuth(session?.user);
             updateUserData(session?.user); // update user like image, phone, bio

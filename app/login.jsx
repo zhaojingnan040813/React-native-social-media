@@ -32,7 +32,7 @@ const login = () => {
 
         if(error){
             Alert.alert('登录失败', error.message);
-            console.log('login error: ', error);
+            // console.log('login error: ', error);
             setLoading(false);
             return null;
         }
