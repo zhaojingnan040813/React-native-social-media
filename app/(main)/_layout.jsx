@@ -55,7 +55,7 @@ export default function MainLayout() {
       <Tabs.Screen 
         name="messages" 
         options={{
-          title: '消息',
+          title: '私信',
           tabBarIcon: ({ color }) => <Icon name="mail" size={24} color={color} />
         }}
       />

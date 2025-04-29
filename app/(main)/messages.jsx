@@ -8,9 +8,9 @@ const Messages = () => {
   return (
     <ScreenWrapper bg="white">
       <View style={styles.container}>
-        <Text style={styles.title}>消息</Text>
+        <Text style={styles.title}>私信</Text>
         <View style={styles.content}>
-          <Text style={styles.message}>功能正在开发中，敬请期待！</Text>
+          <Text style={styles.message}>私信功能正在开发中，敬请期待！</Text>
         </View>
       </View>
     </ScreenWrapper>
