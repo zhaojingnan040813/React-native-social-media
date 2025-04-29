@@ -1,9 +1,26 @@
-import { View, Text, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet, Pressable } from 'react-native'
 import React from 'react'
-import { Tabs } from 'expo-router'
+import { Tabs, useRouter } from 'expo-router'
 import { theme } from '../../constants/theme'
 import Icon from '../../assets/icons'
 import { hp, wp } from '../../helpers/common'
+
+// 1. 定义自定义按钮组件
+const PublishTabButton = (props) => {
+  const router = useRouter();
+  const navigateToNewPost = () => {
+    router.push('/newPost'); // 导航到新帖子页面
+  };
+
+  return (
+    <Pressable onPress={navigateToNewPost} style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      {/* 使用现有的样式渲染按钮 */}
+      <View style={styles.publishButton}>
+        <Icon name="plus" size={24} color="#FFF" />
+      </View>
+    </Pressable>
+  );
+};
 
 export default function MainLayout() {
   return (
@@ -32,12 +49,7 @@ export default function MainLayout() {
       <Tabs.Screen 
         name="publish" 
         options={{
-          title: '',
-          tabBarIcon: () => (
-            <View style={styles.publishButton}>
-              <Icon name="plus" size={24} color="#FFF" />
-            </View>
-          )
+          tabBarButton: (props) => <PublishTabButton {...props} />, // 2. 使用 tabBarButton 选项
         }}
       />
       <Tabs.Screen 
