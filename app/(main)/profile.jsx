@@ -29,7 +29,7 @@ const Profile = () => {
 
     if(!hasMore) return null; // if no more posts then don't call the api
     limit = limit+10; // get 10 more posts everytime
-    console.log('fetching posts: ', limit);
+    // console.log('fetching posts: ', limit);
     let res = await fetchPosts(limit, user.id);
     if(res.success){
       if(posts.length==res.data.length) setHasMore(false);
@@ -79,7 +79,7 @@ const Profile = () => {
         />}
         onEndReached={() => {
           getPosts();
-          console.log('got to the end');
+          // console.log('got to the end');
         }}
         onEndReachedThreshold={0} //  Specifies how close to the bottom the user must scroll before endreached is triggers, 0 -> 1
         ListFooterComponent={hasMore? (
