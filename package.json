@@ -18,6 +18,7 @@
   "dependencies": {
     "@expo/vector-icons": "^14.0.2",
     "@react-native-async-storage/async-storage": "^1.23.1",
+    "@react-navigation/bottom-tabs": "^7.3.10",
     "@react-navigation/native": "^7.0.14",
     "@supabase/supabase-js": "^2.42.6",
     "base64-arraybuffer": "^1.0.2",
@@ -29,7 +30,7 @@
     "expo-image": "~2.0.6",
     "expo-image-picker": "~16.0.6",
     "expo-linking": "~7.0.5",
-    "expo-router": "~4.0.17",
+    "expo-router": "~4.0.20",
     "expo-sharing": "~13.0.1",
     "expo-splash-screen": "~0.29.22",
     "expo-status-bar": "~2.0.1",

@@ -24,6 +24,7 @@ import Image from './Image';
 import Video from './Video';
 import Eye from './Eye';
 import EyeOff from './EyeOff';
+import Calendar from './Calendar';
 
 
 const icons = {
@@ -50,6 +51,7 @@ const icons = {
     video: Video,
     eye: Eye,
     eyeOff: EyeOff,
+    calendar: Calendar,
 }
 
 const Icon = ({name, ...props}) => {
