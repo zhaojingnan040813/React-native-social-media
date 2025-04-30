@@ -1,5 +1,5 @@
-import { View, Text, Button, Alert, StyleSheet, Pressable, ScrollView, FlatList } from 'react-native'
-import React, { useEffect, useState } from 'react'
+import { View, Text, Button, Alert, StyleSheet, Pressable, ScrollView, FlatList, RefreshControl } from 'react-native'
+import React, { useEffect, useState, useCallback } from 'react'
 import ScreenWrapper from '../../components/ScreenWrapper'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
@@ -25,6 +25,7 @@ const HomeScreen = () => {
     const [posts, setPosts] = useState([]);
     const [hasMore, setHasMore] = useState(true);
     const [isLoading, setIsLoading] = useState(false); // 添加加载状态
+    const [refreshing, setRefreshing] = useState(false); // 下拉刷新状态
     const [notificationCount, setNotificationCount] = useState(0);
     const [limit, setLimit] = useState(initialLimit);
 
@@ -104,6 +105,31 @@ const HomeScreen = () => {
       }
 
     },[]);
+    
+    // 下拉刷新处理函数
+    const onRefresh = useCallback(async () => {
+      setRefreshing(true);
+      try {
+        // 重置状态
+        setLimit(initialLimit);
+        setHasMore(true);
+        
+        // 重新获取数据
+        const res = await fetchPosts(initialLimit);
+        if (res.success) {
+          setPosts(res.data);
+          // 如果返回的数据少于请求的数量，说明没有更多数据了
+          if (res.data.length < initialLimit) {
+            setHasMore(false);
+          }
+        }
+      } catch (error) {
+        console.error('刷新数据时出错:', error);
+        Alert.alert('提示', '刷新数据失败，请稍后再试');
+      } finally {
+        setRefreshing(false);
+      }
+    }, []);
     
     const getPosts = async ()=>{
       // 如果已经没有更多数据或者正在加载中，直接返回
@@ -187,6 +213,16 @@ const HomeScreen = () => {
             currentUser={user}
             router={router} 
           />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[theme.colors.primary]} // Android
+              tintColor={theme.colors.primary} // iOS
+              title="下拉刷新" // iOS
+              titleColor={theme.colors.textLight} // iOS
+            />
+          }
           onEndReached={() => {
             if (hasMore && !isLoading) {
             getPosts();
