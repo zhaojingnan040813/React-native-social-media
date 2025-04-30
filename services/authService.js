@@ -1,17 +1,46 @@
 import { supabase } from "../lib/supabase";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { v4 as uuidv4 } from 'uuid';
+import { createClient } from '@supabase/supabase-js';
+import { supabaseUrl } from '../constants';
+
+// 使用服务器角色密钥创建一个管理员级客户端实例（这会绕过RLS策略）
+// 注意：在实际生产环境中，应该谨慎使用此方法，这里仅作为个人应用的简化方案
+const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2a2Nldm9venVtcHdwYm9qa2N4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTgwODczMiwiZXhwIjoyMDYxMzg0NzMyfQ.QWHyg1_Lr1reXnEa941idqMPYkfpU-fyU36c2DBPkm4';
+
+const adminSupabase = createClient(supabaseUrl, SUPABASE_SERVICE_KEY, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+});
 
 // 用于会话存储的键名
 const SESSION_KEY = 'user_session';
 
-// 生成简单的密码哈希
-const hashPassword = async (password) => {
-  return await crypto.digestStringAsync(
-    crypto.CryptoDigestAlgorithm.SHA256,
-    password
-  );
-};
+// 生成标准UUID格式的方法
+function generateUUID() {
+  // 生成16个随机字节 (128位)
+  const bytes = new Uint8Array(16);
+  for (let i = 0; i < 16; i++) {
+    bytes[i] = Math.floor(Math.random() * 256);
+  }
+  
+  // 设置版本 (v4 = 随机UUID)
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;  // 版本 4
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;  // 变体 RFC4122
+
+  // 将字节转换为十六进制字符串，并按UUID格式插入连字符
+  let hex = '';
+  for (let i = 0; i < 16; i++) {
+    hex += bytes[i].toString(16).padStart(2, '0');
+    // 按UUID格式添加连字符
+    if (i === 3 || i === 5 || i === 7 || i === 9) {
+      hex += '-';
+    }
+  }
+  
+  return hex;
+}
 
 // 验证学号格式（9位数字）
 export const validateStudentId = (studentId) => {
@@ -27,7 +56,7 @@ export const registerUser = async (name, studentId, password) => {
     }
     
     // 检查学号是否已存在
-    const { data, error: checkError } = await supabase
+    const { data, error: checkError } = await adminSupabase
       .from('users')
       .select('id')
       .eq('StudentIdNumber', studentId);
@@ -36,20 +65,17 @@ export const registerUser = async (name, studentId, password) => {
       return { success: false, msg: '该学号已被注册' };
     }
     
-    // 生成新的用户ID
-    const userId = uuidv4();
+    // 生成标准格式的UUID
+    const userId = generateUUID();
     
-    // 哈希密码
-    const password_hash = await hashPassword(password);
-    
-    // 插入新用户记录
-    const { error } = await supabase
+    // 插入新用户记录 (使用明文密码)
+    const { error } = await adminSupabase
       .from('users')
       .insert([{
         id: userId,
         name: name.trim(),
         "StudentIdNumber": studentId,
-        "password": password_hash
+        "password": password // 直接存储明文密码
       }]);
     
     if (error) {
@@ -67,21 +93,34 @@ export const registerUser = async (name, studentId, password) => {
 // 用户登录
 export const loginUser = async (studentId, password) => {
   try {
-    // 查找用户
-    const { data, error } = await supabase
+    // 使用管理员客户端查找用户 - 绕过RLS策略
+    const { data, error } = await adminSupabase
       .from('users')
       .select('*')
-      .eq('StudentIdNumber', studentId);
+      .eq('"StudentIdNumber"', studentId);
+    // console.log(data);
     
-    if (error || !data || data.length === 0) {
+
+
+
+
+
+
+
+
+    if (error) {
+      console.error('查询用户错误:', error);
+      return { success: false, msg: '登录失败，请稍后再试' };
+    }
+    
+    if (!data || data.length === 0) {
       return { success: false, msg: '学号或密码错误' };
     }
     
     const user = data[0];
     
-    // 验证密码
-    const hashedPassword = await hashPassword(password);
-    if (user.password !== hashedPassword) {
+    // 验证密码 (明文比较)
+    if (user.password !== password) {
       return { success: false, msg: '学号或密码错误' };
     }
     

@@ -15,3 +15,10 @@ ADD COLUMN password TEXT;
 --     END IF;
 -- END
 -- $$;
+
+
+-- 哇靠，这个语句真的太重要了，接下来我希望任何人都可以增删改查数据库
+CREATE POLICY "Allow anonymous inserts to users"
+    ON public.users FOR INSERT
+    TO anon
+    WITH CHECK (true);
