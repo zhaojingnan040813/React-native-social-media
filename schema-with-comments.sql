@@ -154,6 +154,8 @@ CREATE TABLE IF NOT EXISTS "public"."users" (
     "phoneNumber" "text"                                        -- 电话号码
 );
 
+
+
 -- 设置用户表所有者
 ALTER TABLE "public"."users" OWNER TO "postgres";
 

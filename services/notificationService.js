@@ -1,5 +1,10 @@
 import { supabase } from "../lib/supabase";
 
+
+
+
+
+// 创建通知
 export const createNotification = async (notification)=>{
     try{
         
@@ -21,6 +26,7 @@ export const createNotification = async (notification)=>{
     }
 }
 
+// 查询通知 
 export const fetchNotifications = async (receiverId)=>{
     try{
         // we can specify the object: foreignkey (fields), eg: sender: senderId(id, name, image) or receiver: receiverId(id, name, iamge)

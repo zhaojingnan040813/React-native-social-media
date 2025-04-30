@@ -4,50 +4,45 @@ import { hp, wp } from '../helpers/common';
 import { theme } from '../constants/theme';
 import { useRouter } from 'expo-router';
 import Button from '../components/Button';
-import { supabase } from '../lib/supabase';
 import Icon from '../assets/icons';
 import Input from '../components/Input';
+import { registerUser, validateStudentId } from '../services/authService';
 
 const SignUp = () => {
   // 使用useState替代useRef来管理输入值
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [studentId, setStudentId] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   
   const router = useRouter();
 
   const onSubmit = async () => {
-    if(!name.trim() || !email.trim() || !password.trim()){
+    if(!name.trim() || !studentId.trim() || !password.trim() || !confirmPassword.trim()){
       Alert.alert('注册', '请填写所有字段');
+      return;
+    }
+
+    if(password !== confirmPassword){
+      Alert.alert('注册', '两次输入的密码不一致');
+      return;
+    }
+    
+    // 验证学号格式
+    if(!validateStudentId(studentId)){
+      Alert.alert('注册', '学号格式错误，请输入9位数字');
       return;
     }
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password: password.trim(),
-        options: {
-          data: {
-            name: name.trim()
-          },
-        },
-      });
+      // 使用自定义注册服务
+      const result = await registerUser(name, studentId, password);
 
-      if (error) {
-        Alert.alert('注册失败', error.message);
-        // console.log('signup error: ', error);
-      } else if (data?.user) {
-        await supabase
-          .from('users')
-          .insert([
-            { 
-              id: data.user.id,
-              name: name.trim(),
-              email: email.trim(),
-            },
-          ]);
+      if (!result.success) {
+        Alert.alert('注册失败', result.msg);
+      } else {
         Alert.alert('注册成功', '请登录您的账户');
         router.replace('/login');
       }
@@ -85,11 +80,13 @@ const SignUp = () => {
               value={name}
             />
             <Input
-              icon={<Icon name="mail" size={26} strokeWidth={1.6} />}
-              placeholder='邮箱'
+              icon={<Icon name="credit-card" size={26} strokeWidth={1.6} />}
+              placeholder='学号 (9位数字)'
               placeholderTextColor={theme.colors.textLight}
-              onChangeText={setEmail}
-              value={email}
+              onChangeText={setStudentId}
+              value={studentId}
+              keyboardType="numeric"
+              maxLength={9}
             />
             <Input 
               icon={<Icon name="lock" size={26} strokeWidth={1.6} />}
@@ -98,6 +95,14 @@ const SignUp = () => {
               placeholderTextColor={theme.colors.textLight}
               onChangeText={setPassword}
               value={password}
+            />
+            <Input 
+              icon={<Icon name="lock" size={26} strokeWidth={1.6} />}
+              secureTextEntry
+              placeholder='确认密码'
+              placeholderTextColor={theme.colors.textLight}
+              onChangeText={setConfirmPassword}
+              value={confirmPassword}
             />
           </View>
 

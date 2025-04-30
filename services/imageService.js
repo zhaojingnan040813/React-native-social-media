@@ -3,6 +3,12 @@ import { supabase } from "../lib/supabase";
 import * as FileSystem from 'expo-file-system';
 import { Share } from 'react-native';
 import { supabaseUrl } from "../constants";
+
+
+
+
+
+// 上传文件
 export const uploadFile = async (folderName, fileUri, isImage=true)=>{
     try{
         let fileName = getFilePath(folderName, isImage);
@@ -32,10 +38,12 @@ export const uploadFile = async (folderName, fileUri, isImage=true)=>{
     }
 }
 
+// 获取文件路径
 export const getFilePath = (folderName, isImage=true)=>{
     return `/${folderName}/${(new Date()).getTime()}${isImage? '.png': '.mp4'}`;
 }
 
+// 获取用户图片源
 export const getUserImageSrc = (imagePath)=>{
     if(imagePath){
         return getSupabaseFileUrl(imagePath);
@@ -44,12 +52,14 @@ export const getUserImageSrc = (imagePath)=>{
     }
 }
 
+// 获取 Supabase 文件 URL
 export const getSupabaseFileUrl = filePath=>{
     if(filePath)
         return {uri: `${supabaseUrl}/storage/v1/object/public/uploads/${filePath}`};
     return null;
 }
 
+// 下载文件
 export const downloadFile = async (url)=>{
     try {
         // Start the download
@@ -60,6 +70,7 @@ export const downloadFile = async (url)=>{
     }
 }
 
+// 获取本地文件路径 
 const getLocalFilePath = filePath=>{
     let fileName = filePath.split('/').pop();
     return `${FileSystem.documentDirectory}${fileName}`;

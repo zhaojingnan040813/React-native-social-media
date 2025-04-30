@@ -1,6 +1,11 @@
 import { supabase } from "../lib/supabase";
 import { uploadFile } from "./imageService";
 
+
+
+
+
+// 创建或更新帖子
 export const createOrUpdatePost = async (post)=>{
     try{
 
@@ -53,7 +58,7 @@ export const createOrUpdatePost = async (post)=>{
     }
 }
 
-
+//查询帖子列表，可能带有分页和用户过滤 (select，带有 .limit(), .eq() 等修饰符)。
 export const fetchPosts = async (limit=10, userId=null)=>{
     try{
 
@@ -114,6 +119,7 @@ export const fetchPosts = async (limit=10, userId=null)=>{
     }
 }
 
+//查询帖子详情，包括帖子内容、用户信息、点赞信息和评论信息。
 export const fetchPostDetails = async (postId)=>{
     try{
         const { data, error } = await supabase
@@ -142,6 +148,7 @@ export const fetchPostDetails = async (postId)=>{
     }
 }
 
+// 创建帖子点赞
 export const createPostLike = async (postLike)=>{
     try{
         
@@ -162,6 +169,8 @@ export const createPostLike = async (postLike)=>{
         return {success: false, msg: "Could not like this post"};
     }
 }
+
+// 删除帖子点赞
 export const removePostLike = async (postId, userId)=>{
     try{
         
@@ -183,7 +192,7 @@ export const removePostLike = async (postId, userId)=>{
     }
 }
 
-
+// 创建评论
 export const createComment = async (comment)=>{
     try{
         
@@ -205,7 +214,7 @@ export const createComment = async (comment)=>{
     }
 }
 
-
+// 删除评论
 export const removeComment = async (commentId)=>{
     try{
         
@@ -226,6 +235,7 @@ export const removeComment = async (commentId)=>{
     }
 }
 
+// 删除帖子
 export const removePost = async (postId)=>{
     try{
         

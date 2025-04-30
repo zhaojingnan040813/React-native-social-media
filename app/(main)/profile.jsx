@@ -11,13 +11,12 @@ import Header from '../../components/Header'
 import ScreenWrapper from '../../components/ScreenWrapper'
 import Icon from '../../assets/icons'
 import Avatar from '../../components/Avatar'
-import { supabase } from '../../lib/supabase'
 import { fetchPosts } from '../../services/postService'
 import PostCard from '../../components/PostCard'
 import Loading from '../../components/Loading'
 
 const Profile = () => {
-  const {user, setAuth} = useAuth();
+  const {user, logout} = useAuth();
   const router = useRouter();
   const [posts, setPosts] = useState([]);
   const [hasMore, setHasMore] = useState(true);
@@ -30,7 +29,6 @@ const Profile = () => {
   }, []); // 空依赖数组表示仅在组件挂载时执行一次
 
   const getPosts = async ()=>{
-
     if(!hasMore) return null; // if no more posts then don't call the api
     const newLimit = limit + 10; // get 10 more posts everytime
     setLimit(newLimit);
@@ -42,14 +40,15 @@ const Profile = () => {
     }
   }
   
-
   const onLogout = async () => {
-    setAuth(null);
-    const {error} = await supabase.auth.signOut();
-    if (error) {
-      Alert.alert("退出登录失败", error.message);
+    const result = await logout();
+    if (!result.success) {
+      Alert.alert("退出登录失败", result.msg);
+    } else {
+      // 退出成功后跳转到登录页
+      router.replace('/login');
     }
-}
+  }
 
   const handleLogout = ()=>{
     Alert.alert('确认', '您确定要退出登录吗？', [
