@@ -22,3 +22,12 @@ CREATE POLICY "Allow anonymous inserts to users"
     ON public.users FOR INSERT
     TO anon
     WITH CHECK (true);
+
+
+ALTER TABLE "public"."comments" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."users" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."posts" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."postLikes" DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."notifications" DISABLE ROW LEVEL SECURITY;
+
+
