@@ -1,11 +1,11 @@
 {
   "expo": {
     "name": "QQ哈尔校园墙",
-    "slug": "QQHESchoolWall",
+    "slug": "supa-social-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "QQHESchoolWall",
+    "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/splash.png",
@@ -20,7 +20,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.zhaojingnan.supasocialapp"
