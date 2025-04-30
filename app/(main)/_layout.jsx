@@ -9,7 +9,7 @@ import { hp, wp } from '../../helpers/common'
 const PublishTabButton = (props) => {
   const router = useRouter();
   const navigateToNewPost = () => {
-    router.push('/newPost'); // 导航到新帖子页面
+    router.push('newPost'); // 修改为相对路径，去掉前面的斜杠
   };
 
   return (

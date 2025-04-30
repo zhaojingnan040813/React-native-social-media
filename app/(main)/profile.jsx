@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, ScrollView, Pressable, TouchableOpacity, Alert, FlatList } from 'react-native'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { hp, wp } from '../../helpers/common'
 import { useAuth } from '../../contexts/AuthContext'
 import { theme } from '../../constants/theme'
@@ -16,21 +16,26 @@ import { fetchPosts } from '../../services/postService'
 import PostCard from '../../components/PostCard'
 import Loading from '../../components/Loading'
 
-var limit = 0;
 const Profile = () => {
   const {user, setAuth} = useAuth();
   const router = useRouter();
   const [posts, setPosts] = useState([]);
   const [hasMore, setHasMore] = useState(true);
+  const [limit, setLimit] = useState(0);
 
-  // first do this
+  // 添加 useEffect 钩子来在组件挂载时获取帖子
+  useEffect(() => {
+    // 初次加载时获取帖子
+    getPosts();
+  }, []); // 空依赖数组表示仅在组件挂载时执行一次
 
   const getPosts = async ()=>{
 
     if(!hasMore) return null; // if no more posts then don't call the api
-    limit = limit+10; // get 10 more posts everytime
+    const newLimit = limit + 10; // get 10 more posts everytime
+    setLimit(newLimit);
     // console.log('fetching posts: ', limit);
-    let res = await fetchPosts(limit, user.id);
+    let res = await fetchPosts(newLimit, user.id);
     if(res.success){
       if(posts.length==res.data.length) setHasMore(false);
       setPosts(res.data);

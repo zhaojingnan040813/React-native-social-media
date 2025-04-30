@@ -18,7 +18,6 @@ import Avatar from '../../components/Avatar'
 
 // 初始加载的帖子数量
 const initialLimit = 10;
-let limit = initialLimit;
 
 const HomeScreen = () => {
     const {user, setAuth} = useAuth();
@@ -27,6 +26,7 @@ const HomeScreen = () => {
     const [hasMore, setHasMore] = useState(true);
     const [isLoading, setIsLoading] = useState(false); // 添加加载状态
     const [notificationCount, setNotificationCount] = useState(0);
+    const [limit, setLimit] = useState(initialLimit);
 
     // const onLogout = async () => {
     //     setAuth(null);
@@ -124,8 +124,8 @@ const HomeScreen = () => {
             if(res.data.length < limit) {
               setHasMore(false);
             } else {
-              // 否则增加下次加载的数量
-              limit += initialLimit;
+              // 否则增加下次加载的数量，使用 setState 更新 limit
+              setLimit(prevLimit => prevLimit + initialLimit);
             }
           }
         } else {

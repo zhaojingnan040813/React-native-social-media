@@ -5,7 +5,7 @@ import { Image } from 'expo-image';
 import { downloadFile, getSupabaseFileUrl, getUserImageSrc } from '../services/imageService';
 import { hp, stripHtmlTags, wp } from '../helpers/common';
 import moment from 'moment';
-import RenderHtml from 'react-native-render-html';
+import { WebView } from 'react-native-webview';
 import Icon from '../assets/icons';
 import { Video } from 'expo-av';
 import { createPostLike, removePostLike } from '../services/postService';
@@ -30,6 +30,35 @@ const tagsStyles = {
   },
 };
 
+const wrapHtmlContent = (htmlContent) => {
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+        <style>
+          body {
+            font-family: system-ui, -apple-system, sans-serif;
+            font-size: ${hp(1.75)}px;
+            color: ${theme.colors.dark};
+            margin: 0;
+            padding: 0;
+          }
+          p, div, ol { 
+            font-size: ${hp(1.75)}px;
+            color: ${theme.colors.dark};
+            margin-top: 0;
+          }
+          h1, h4 { 
+            color: ${theme.colors.dark};
+          }
+        </style>
+      </head>
+      <body>${htmlContent || ''}</body>
+    </html>
+  `;
+};
+
 const PostCard = ({
   item,
   currentUser,
@@ -42,10 +71,11 @@ const PostCard = ({
 }) => {
   const [likes, setLikes] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [webViewHeight, setWebViewHeight] = useState(50);
 
   const liked = likes.filter(like=> like.userId==currentUser?.id)[0]? true: false;
   const createdAt = moment(item?.created_at).format('MMM D');
-  const htmlBody = { html: item?.body };
+  const htmlContent = wrapHtmlContent(item?.body);
   const shadowStyles = {
     shadowOffset: {
       width: 0,
@@ -55,22 +85,22 @@ const PostCard = ({
     shadowRadius: 6,
     elevation: 1,
   }
-  // console.log('item: ', item.comments);
+
+  const injectedJavaScript = `
+    window.ReactNativeWebView.postMessage(document.body.scrollHeight);
+    true;
+  `;
 
   useEffect(()=>{
     setLikes(item?.postLikes);
   },[]);
 
-
-  
   const onLike = async ()=>{
-
     if(liked){
       let updatedLikes = likes.filter(like=> like.userId!=currentUser?.id);
       setLikes([...updatedLikes]);
 
       let res = await removePostLike(item?.id, currentUser?.id);
-      // console.log('res: ', res);
       if(!res.success){
         Alert.alert('帖子', '出现了问题！')
       }
@@ -82,12 +112,10 @@ const PostCard = ({
 
       setLikes([...likes, data]);
       let res = await createPostLike(data);
-      // console.log('res: ', res);
       if(!res.success){
         Alert.alert('帖子', '出现了问题！')
       }
     }
-    
   }
 
   const onShare = async ()=>{
@@ -99,7 +127,6 @@ const PostCard = ({
       setLoading(false);
     }
     Share.share(content);
-      
   }
 
   const handlePostDelete = ()=>{
@@ -167,11 +194,20 @@ const PostCard = ({
         <View style={styles.postBody}>
           {
             item?.body && (
-              <RenderHtml
-                contentWidth={wp(100)}
-                source={htmlBody}
-                tagsStyles={tagsStyles}
-                render
+              <WebView
+                originWhitelist={['*']}
+                source={{ html: htmlContent }}
+                style={{ width: '100%', height: webViewHeight }}
+                scrollEnabled={false}
+                injectedJavaScript={injectedJavaScript}
+                onMessage={(event) => {
+                  const height = parseInt(event.nativeEvent.data);
+                  setWebViewHeight(height + 10);
+                }}
+                showsVerticalScrollIndicator={false}
+                automaticallyAdjustContentInsets={true}
+                javaScriptEnabled={true}
+                domStorageEnabled={true}
               />
             )
           }
@@ -220,12 +256,9 @@ const PostCard = ({
             <Icon name="comment" size={24} color={theme.colors.textLight} />
           </TouchableOpacity>
           <Text style={styles.count}>
-            {/* implement after adding post details modal */}
-            {/* 0 */}
             {
               item?.comments[0]?.count
             }
-
           </Text>
         </View>
         <View style={styles.footerButton}>
@@ -238,7 +271,6 @@ const PostCard = ({
               </TouchableOpacity>
             )
           }
-          
         </View>
       </View>
     </View>
@@ -279,7 +311,6 @@ const styles = StyleSheet.create({
   },
   content: {
     gap: 10,
-    // marginBottom: 10,
   },
   postMedia: {
     height: hp(40),
@@ -310,7 +341,6 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     fontSize: hp(1.8)
   }
-
 })
 
 export default PostCard

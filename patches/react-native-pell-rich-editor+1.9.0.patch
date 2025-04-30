@@ -10,3 +10,8 @@ index 14bea22..792147f 100755
            domStorageEnabled={false}
            bounces={false}
            javaScriptEnabled={true}
+# 这个文件是一个 补丁文件（patch file），它修改了 node_modules 中 react-native-pell-rich-editor 库的源代码
+# 这个补丁的作用是：从富文本编辑器的 WebView 组件中移除 dataDetectorTypes={'none'} 属性。
+# 这个属性在 iOS 上会导致 WebView 无法正常显示，而在 Android 上则没有影响。
+# 因此，我们移除这个属性，以确保在所有平台上都能正常显示富文本编辑器。
+# 这是作者写的俺也不懂

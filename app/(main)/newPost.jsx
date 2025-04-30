@@ -10,7 +10,7 @@ import RichTextEditor from '../../components/RichTextEditor'
 import Button from '../../components/Button'
 import { AntDesign, FontAwesome, FontAwesome6, Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker';
-import { Video, AVPlaybackStatus } from 'expo-av';
+import { Video } from 'expo-av';
 import { createOrUpdatePost } from '../../services/postService'
 import Header from '../../components/Header'
 import { useLocalSearchParams, useRouter } from 'expo-router'
@@ -179,7 +179,7 @@ const NewPost = () => {
                       isLooping
                     />
                   ):(
-                    <Image source={{uri: getFileUri(file)}} contentFit='cover' style={{flex: 1}} />
+                    <Image source={{uri: getFileUri(file)}} resizeMode='cover' style={{flex: 1}} />
                   )
                 }
 
