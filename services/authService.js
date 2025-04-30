@@ -5,8 +5,8 @@ import { supabaseUrl } from '../constants';
 
 // 使用服务器角色密钥创建一个管理员级客户端实例（这会绕过RLS策略）
 // 注意：在实际生产环境中，应该谨慎使用此方法，这里仅作为个人应用的简化方案
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2a2Nldm9venVtcHdwYm9qa2N4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTgwODczMiwiZXhwIjoyMDYxMzg0NzMyfQ.QWHyg1_Lr1reXnEa941idqMPYkfpU-fyU36c2DBPkm4';
-
+// const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2a2Nldm9venVtcHdwYm9qa2N4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTgwODczMiwiZXhwIjoyMDYxMzg0NzMyfQ.QWHyg1_Lr1reXnEa941idqMPYkfpU-fyU36c2DBPkm4';
+const SUPABASE_SERVICE_KEY = service_role_key
 const adminSupabase = createClient(supabaseUrl, SUPABASE_SERVICE_KEY, {
   auth: {
     autoRefreshToken: false,
