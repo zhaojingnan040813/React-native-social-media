@@ -19,10 +19,12 @@ import Header from '../../components/Header';
 import { FlatList } from 'react-native-gesture-handler';
 
 const PostDetails = () => {
-    const {postId, commentId} = useLocalSearchParams();
+    const params = useLocalSearchParams();
+    const postId = params.postId;
+    const timestamp = params.t;
 
-    /// later we need to update the comments, thats why we used a sate for item
-    // const [item, setItem] = useState(JSON.parse(params.data)); 
+    // console.log(`正在加载帖子详情，ID: ${postId}，时间戳: ${timestamp}`);
+
     const [post, setPost] = useState(null);
     const router = useRouter();
     const [loading, setLoading] = useState(false);
@@ -33,15 +35,14 @@ const PostDetails = () => {
     const [comment, setComment] = useState(''); 
     const [sending, setSending] = useState(false);
     const [showDelete, setShowDelete] = useState(false);
-    // console.log('got item: ', item);
 
     const handleNewComment = async payload=>{
-        // console.log('got new comment: ', payload.new)
         if(payload.new){
             let newComment = {...payload.new};
             let res = await getUserData(newComment.userId);
             newComment.user = res.success? res.data: {};
             setPost(prev=> {
+                if (!prev) return prev;
                 return {
                     ...prev,
                     comments: [newComment, ...prev.comments]
@@ -50,34 +51,50 @@ const PostDetails = () => {
         }
     }
 
-    useEffect(()=>{
-
-        getPostDetails();
-
-        let channel = supabase
-        .channel('comments')
-        .on('postgres_changes', { 
-            event: 'INSERT', 
-            schema: 'public', 
-            table: 'comments',
-            filter: `postId=eq.${postId}`,
-        }, handleNewComment)
-        .subscribe();
-
-        // getPosts();
-
-        return ()=>{
-            supabase.removeChannel(channel)
+    useEffect(() => {
+        // console.log(`帖子详情页面挂载/更新，帖子ID: ${postId}`);
+        
+        setPost(null);
+        setStartLoading(true);
+        
+        if (postId) {
+            getPostDetails();
+            
+            let channel = supabase
+            .channel(`comments-${postId}`)
+            .on('postgres_changes', { 
+                event: 'INSERT', 
+                schema: 'public', 
+                table: 'comments',
+                filter: `postId=eq.${postId}`,
+            }, handleNewComment)
+            .subscribe();
+            
+            return () => {
+                // console.log(`清理帖子详情页面，帖子ID: ${postId}`);
+                supabase.removeChannel(channel);
+            }
         }
-    },[]);
+    }, [postId, timestamp]);
 
-    const getPostDetails = async ()=>{
-        let res = await fetchPostDetails(postId);
-        // console.log('res: ', res);
-        setStartLoading(false);
-        if(res.success) setPost(res.data);
+    const getPostDetails = async () => {
+        // console.log(`开始获取帖子详情数据，ID: ${postId}`);
+        try {
+            const res = await fetchPostDetails(postId);
+            // console.log(`帖子详情获取结果:`, res.success ? '成功' : '失败');
+            
+            setStartLoading(false);
+            if (res.success) {
+                setPost(res.data);
+            } else {
+                Alert.alert('提示', '获取帖子详情失败');
+            }
+        } catch (error) {
+            console.error('获取帖子详情出错:', error);
+            setStartLoading(false);
+            Alert.alert('错误', '获取帖子详情时发生错误');
+        }
     }
-
 
     const onNewComment = async ()=>{
         if(!comment.trim()) return null;
@@ -91,10 +108,8 @@ const PostDetails = () => {
         setSending(true);
         let res = await createComment(data);
         setSending(false);
-        // console.log('result: ', res);
         if(res.success){
             if(user.id!=post.userId){
-                // send notification
                 let notify = {
                     senderId: user.id,
                     receiverId: post.userId,
@@ -159,7 +174,6 @@ const PostDetails = () => {
     <ScreenWrapper bg="white">
     <View style={styles.container}>
             <Header title="帖子详情" />
-            {/* <BackButton router={router} /> */}
             {
                 loading? (
                     <View style={{marginTop: hp(20)}}>

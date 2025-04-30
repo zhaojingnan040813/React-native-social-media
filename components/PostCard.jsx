@@ -145,7 +145,9 @@ const PostCard = ({
   }
 
   const openPostDetails = ()=>{
-    router.push({pathname: 'postDetails', params: {postId: item?.id}})
+    const timestamp = new Date().getTime();
+    // console.log(`正在打开帖子：${item?.id}，时间戳：${timestamp}`);
+    router.replace(`/postDetails?postId=${item?.id}&t=${timestamp}`);
   }
   return (
     <View style={[styles.container, hasShadow && shadowStyles]}>
