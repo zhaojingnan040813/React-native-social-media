@@ -182,7 +182,7 @@ export const getTimeSlots = async () => {
     const { data, error } = await supabase
       .from('time_slots')
       .select('*')
-      .order('display_order', { ascending: true });
+      .order('slot_id', { ascending: true });
 
     if (error) throw error;
     return data;

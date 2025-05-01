@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Modal, Alert } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Modal, Alert, TextInput } from 'react-native'
 import React, { useState, useEffect } from 'react'
 import ScreenWrapper from '../../components/ScreenWrapper'
 import { theme } from '../../constants/theme'
@@ -45,6 +45,10 @@ const Schedule = () => {
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
+  const [courseName, setCourseName] = useState('');
+  const [courseLocation, setCourseLocation] = useState('');
+  const [courseColor, setCourseColor] = useState('blue');
+  const [colorPickerVisible, setColorPickerVisible] = useState(false);
 
   // 获取课表数据
   const fetchScheduleData = async () => {
@@ -276,6 +280,91 @@ const Schedule = () => {
     setModalVisible(false);
   };
 
+  // 添加课程
+  const handleAddCourse = async () => {
+    if (!selectedSlot) return;
+    
+    try {
+      if (!courseName.trim()) {
+        Alert.alert('提示', '请输入课程名称');
+        return;
+      }
+      
+      setLoading(true);
+      
+      // 创建新的课程
+      const newCourse = {
+        user_id: user.id,
+        course_name: courseName.trim(),
+        color: courseColor
+      };
+      
+      // 保存课程到数据库
+      const course = await scheduleService.addCourse(newCourse);
+      
+      // 创建课程安排
+      const courseItem = {
+        user_id: user.id,
+        course_id: course.course_id,
+        day_of_week: selectedSlot.day,
+        start_slot: selectedSlot.slot.slot_id,
+        end_slot: selectedSlot.slot.slot_id,  // 假设课程只占一个时间段，可根据需要调整
+        location: courseLocation.trim()
+      };
+      
+      // 保存课程安排到数据库
+      await scheduleService.addCourseItem(courseItem);
+      
+      // 重新加载数据
+      await fetchScheduleData();
+      
+      // 重置表单并关闭模态框
+      setCourseName('');
+      setCourseLocation('');
+      setCourseColor('blue');
+      setAddModalVisible(false);
+      
+      Alert.alert('成功', '课程添加成功');
+    } catch (error) {
+      console.error('添加课程失败:', error);
+      Alert.alert('错误', '添加课程失败，请重试');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // 渲染颜色选择器
+  const renderColorPicker = () => {
+    const colors = [
+      { name: '蓝色', value: 'blue' },
+      { name: '绿色', value: 'green' },
+      { name: '紫色', value: 'purple' },
+      { name: '黄色', value: 'yellow' },
+      { name: '橙色', value: 'orange' }
+    ];
+    
+    return (
+      <View style={styles.colorPickerContainer}>
+        {colors.map((color) => (
+          <TouchableOpacity
+            key={color.value}
+            style={[
+              styles.colorOption,
+              { backgroundColor: COLOR_MAP[color.value] },
+              courseColor === color.value && styles.selectedColorOption
+            ]}
+            onPress={() => {
+              setCourseColor(color.value);
+              setColorPickerVisible(false);
+            }}
+          >
+            <Text style={styles.colorOptionText}>{color.name}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  };
+
   return (
     <ScreenWrapper bg="white">
       <View style={styles.container}>
@@ -397,7 +486,7 @@ const Schedule = () => {
           </View>
         </Modal>
         
-        {/* 添加课程模态框 - 简化版，实际实现中应该有表单 */}
+        {/* 添加课程模态框 */}
         <Modal
           visible={addModalVisible}
           transparent={true}
@@ -408,7 +497,13 @@ const Schedule = () => {
             <View style={styles.modalContent}>
               <TouchableOpacity 
                 style={styles.closeButton}
-                onPress={() => setAddModalVisible(false)}
+                onPress={() => {
+                  setAddModalVisible(false);
+                  setCourseName('');
+                  setCourseLocation('');
+                  setCourseColor('blue');
+                  setColorPickerVisible(false);
+                }}
               >
                 <AntDesign name="close" size={24} color="#999" />
               </TouchableOpacity>
@@ -416,14 +511,53 @@ const Schedule = () => {
               <Text style={styles.modalTitle}>添加课程</Text>
               
               {selectedSlot && (
-                <View style={styles.courseDetails}>
-                  <Text style={styles.detailLabel}>上课时间</Text>
-                  <Text style={styles.detailValue}>
-                    周{weekdays[selectedSlot.day - 1]} {' '}
-                    {selectedSlot.slot.slot_name}
-                  </Text>
+                <View style={styles.courseForm}>
+                  <Text style={styles.formLabel}>课程名称</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    placeholder="请输入课程名称"
+                    value={courseName}
+                    onChangeText={setCourseName}
+                  />
                   
-                  <Text style={styles.message}>课程添加功能正在开发中...</Text>
+                  <Text style={styles.formLabel}>上课地点</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    placeholder="请输入上课地点"
+                    value={courseLocation}
+                    onChangeText={setCourseLocation}
+                  />
+                  
+                  <Text style={styles.formLabel}>上课时间</Text>
+                  <View style={styles.timeDisplay}>
+                    <Text style={styles.timeDisplayText}>
+                      周{weekdays[selectedSlot.day - 1]} {' '}
+                      {selectedSlot.slot.slot_name}
+                    </Text>
+                  </View>
+                  
+                  <Text style={styles.formLabel}>课程颜色</Text>
+                  <TouchableOpacity
+                    style={[styles.colorSelector, { backgroundColor: COLOR_MAP[courseColor] }]}
+                    onPress={() => setColorPickerVisible(!colorPickerVisible)}
+                  >
+                    <Text style={styles.colorSelectorText}>{
+                      courseColor === 'blue' ? '蓝色' :
+                      courseColor === 'green' ? '绿色' :
+                      courseColor === 'purple' ? '紫色' :
+                      courseColor === 'yellow' ? '黄色' : '橙色'
+                    }</Text>
+                    <AntDesign name="down" size={16} color="white" />
+                  </TouchableOpacity>
+                  
+                  {colorPickerVisible && renderColorPicker()}
+                  
+                  <TouchableOpacity 
+                    style={styles.saveButton}
+                    onPress={handleAddCourse}
+                  >
+                    <Text style={styles.saveButtonText}>保存</Text>
+                  </TouchableOpacity>
                 </View>
               )}
             </View>
@@ -679,12 +813,80 @@ const styles = StyleSheet.create({
     fontSize: hp(2),
     marginLeft: 15,
   },
-  message: {
+  courseForm: {
+    width: '100%',
+  },
+  formLabel: {
+    fontSize: hp(1.8),
+    color: '#777',
+    marginBottom: 5,
+  },
+  formInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 15,
     fontSize: hp(2),
-    color: theme.colors.textLight,
+  },
+  timeDisplay: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 15,
+    backgroundColor: '#f5f5f5',
+  },
+  timeDisplayText: {
+    fontSize: hp(2),
+    color: '#666',
+  },
+  colorSelector: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 5,
+  },
+  colorSelectorText: {
+    fontSize: hp(2),
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  colorPickerContainer: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 5,
+    marginBottom: 15,
+    overflow: 'hidden',
+  },
+  colorOption: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  selectedColorOption: {
+    borderLeftWidth: 5,
+    borderLeftColor: 'white',
+  },
+  colorOptionText: {
+    fontSize: hp(2),
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  saveButton: {
+    backgroundColor: theme.colors.primary,
+    paddingVertical: 12,
+    borderRadius: 5,
+    marginTop: 10,
+  },
+  saveButtonText: {
+    color: 'white',
     textAlign: 'center',
-    marginTop: 20,
-  }
+    fontWeight: 'bold',
+    fontSize: hp(2),
+  },
 })
 
 export default Schedule 
