@@ -56,6 +56,8 @@ const Profile = () => {
       router.push('/notifications');
     } else if (feature === '我的收藏') {
       router.push('/myBookmarks');
+    } else if (feature === '关于作者') {
+      router.push('/aboutAuthor');
     } else {
       Alert.alert('提示', '该功能正在开发中，敬请期待！');
     }

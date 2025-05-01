@@ -27,6 +27,9 @@ import EyeOff from './EyeOff';
 import Calendar from './Calendar';
 import Bookmark from './Bookmark';
 import BookmarkFill from './BookmarkFill';
+import Github from './Github';
+import QQ from './QQ';
+import QQPenguin from './QQPenguin';
 
 
 const icons = {
@@ -56,6 +59,9 @@ const icons = {
     calendar: Calendar,
     bookmark: Bookmark,
     'bookmark-fill': BookmarkFill,
+    github: Github,
+    qq: QQ,
+    qqPenguin: QQPenguin,
 }
 
 const Icon = ({name, ...props}) => {
