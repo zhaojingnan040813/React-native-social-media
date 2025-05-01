@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, TouchableOpacity, Alert, FlatList, RefreshControl } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable, TouchableOpacity, Alert } from 'react-native'
 import React, { useState, useEffect, useCallback } from 'react'
 import { hp, wp } from '../../helpers/common'
 import { useAuth } from '../../contexts/AuthContext'
@@ -11,53 +11,11 @@ import Header from '../../components/Header'
 import ScreenWrapper from '../../components/ScreenWrapper'
 import Icon from '../../assets/icons'
 import Avatar from '../../components/Avatar'
-import { fetchPosts } from '../../services/postService'
-import PostCard from '../../components/PostCard'
-import Loading from '../../components/Loading'
 import moment from 'moment'
 
 const Profile = () => {
   const {user, logout} = useAuth();
   const router = useRouter();
-  const [posts, setPosts] = useState([]);
-  const [hasMore, setHasMore] = useState(true);
-  const [limit, setLimit] = useState(0);
-  const [refreshing, setRefreshing] = useState(false);
-
-  // 添加 useEffect 钩子来在组件挂载时获取帖子
-  useEffect(() => {
-    // 初次加载时获取帖子
-    getPosts();
-  }, []); // 空依赖数组表示仅在组件挂载时执行一次
-
-  const getPosts = async () => {
-    if(!hasMore) return null; // if no more posts then don't call the api
-    const newLimit = limit + 10; // get 10 more posts everytime
-    setLimit(newLimit);
-    // console.log('fetching posts: ', limit);
-    let res = await fetchPosts(newLimit, user.id);
-    if(res.success){
-      if(posts.length==res.data.length) setHasMore(false);
-      setPosts(res.data);
-    }
-  }
-  
-  // 添加下拉刷新处理函数
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    setLimit(0);
-    setHasMore(true);
-    try {
-      const res = await fetchPosts(10, user.id);
-      if(res.success){
-        setPosts(res.data);
-      }
-    } catch (error) {
-      console.error('刷新时出错:', error);
-    } finally {
-      setRefreshing(false);
-    }
-  }, [user.id]);
   
   const onLogout = async () => {
     const result = await logout();
@@ -69,7 +27,7 @@ const Profile = () => {
     }
   }
 
-  const handleLogout = ()=>{
+  const handleLogout = () => {
     Alert.alert('确认', '您确定要退出登录吗？', [
         {
           text: '取消',
@@ -83,52 +41,7 @@ const Profile = () => {
         },
     ]);
   }
-
-  return (
-    <ScreenWrapper bg="white">
-      {/* first create UserHeader and use it here, then move it to header comp when implementing user posts */}
-      {/* posts */}
-      <FlatList
-        data={posts}
-        ListHeaderComponent={<UserHeader user={user} handleLogout={handleLogout} router={router} />}
-        ListHeaderComponentStyle={{marginBottom: 30}}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listStyle}
-        keyExtractor={(item, index) => item.id.toString()}
-        renderItem={({ item }) => <PostCard 
-          item={item} 
-          currentUser={user}
-          router={router} 
-        />}
-        onEndReached={() => {
-          getPosts();
-          // console.log('got to the end');
-        }}
-        onEndReachedThreshold={0} //  Specifies how close to the bottom the user must scroll before endreached is triggers, 0 -> 1
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[theme.colors.primary]}
-            tintColor={theme.colors.primary}
-          />
-        }
-        ListFooterComponent={hasMore? (
-            <View style={{marginTop: posts.length==0? 100: 30}}>
-              <Loading />
-            </View>
-          ):(
-            <View style={{marginVertical: 30}}>
-              <Text style={styles.noPosts}>您没有更多的帖子了</Text>
-            </View>
-          )
-        }
-      />
-    </ScreenWrapper>
-  )
-}
-
-const UserHeader = ({user, handleLogout, router})=>{
+  
   // 格式化生日显示
   const formatBirthday = (dateString) => {
     if (!dateString) return '';
@@ -155,147 +68,151 @@ const UserHeader = ({user, handleLogout, router})=>{
   ];
 
   return (
-    <View style={{flex: 1, backgroundColor:'white'}}> 
-        <View>
-          <Text style={styles.profileTitle}>个人资料</Text>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Icon name="logout" size={26} color={theme.colors.rose} />
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.container}>
-          <View style={{gap: 15}}>
-            {/* avatar */}
-            <View style={styles.avatarContainer}>
-              <Avatar
-                uri={user?.image}
-                size={hp(12)}
-                rounded={theme.radius.xxl*1.4}
-              />
-              
-              {/* 性别图标 */}
-              {user?.gender && (
-                <View style={[
-                  styles.genderIcon, 
-                  {backgroundColor: user.gender === '男' ? 'rgba(100, 149, 237, 0.9)' : 'rgba(255, 182, 193, 0.9)'}
-                ]}>
-                  <FontAwesome5 
-                    name={user.gender === '男' ? 'mars' : 'venus'} 
-                    size={16} 
-                    color="white" 
-                  />
-                </View>
-              )}
-              
-              <Pressable style={styles.editIcon} onPress={()=> router.push('/editProfile')}>
-                <Icon name="edit" strokeWidth={2.5} size={20} />
-              </Pressable>
-            </View>
-          
-
-            {/* username & address */}
-            <View style={{alignItems: 'center', gap: 4}}>
-              <Text style={styles.userName}> { user && user.name } </Text>
-              <Text style={styles.infoText}> {user && user.address} </Text>
-            </View>
-            
-            {/* 学院和专业信息 */}
-            {(user?.college || user?.major) && (
-              <View style={styles.educationInfo}>
-                <Icon name="school" size={20} color={theme.colors.textLight} />
-                <Text style={[styles.infoText, {fontSize: hp(1.8)}]}>
-                  {user?.college}{user?.major ? ` · ${user.major}` : ''}
-                  {user?.grade ? ` · ${user.grade}` : ''}
-                </Text>
-              </View>
-            )}
-            
-            {/* 学号信息 */}
-            {user?.StudentIdNumber && (
-              <View style={styles.info}>
-                <Icon name="idCard" size={20} color={theme.colors.textLight} />
-                <Text style={[styles.infoText, {fontSize: hp(1.8)}]}>
-                  {user.StudentIdNumber}
-                </Text>
-              </View>
-            )}
-            
-            {/* 生日信息 */}
-            {user?.birthday && (
-              <View style={styles.info}>
-                <Icon name="calendar" size={20} color={theme.colors.textLight} />
-                <Text style={[styles.infoText, {fontSize: hp(1.8)}]}>
-                  {formatBirthday(user.birthday)}
-                </Text>
-              </View>
-            )}
-
-            {/* email, phone */}
-            <View style={{gap: 10}}>
-              <View style={styles.info}>
-                <Icon name="mail" size={20} color={theme.colors.textLight} />
-                <Text style={[styles.infoText, {fontSize: hp(1.8)}]}> 
-                    {user && user.email}
-                  </Text>
-              </View>
-              {
-                user && user.phoneNumber && (
-                  <View style={styles.info}>
-                    <Icon name="call" size={20} color={theme.colors.textLight} />
-                    <Text style={[styles.infoText, {fontSize: hp(1.8)}]}> 
-                        {
-                          user.phoneNumber
-                        } 
-                    </Text>
-                  </View>
-                )
-              }
-              
-              {
-                user && user.bio && (
-                  <View style={styles.bioContainer}>
-                    <Icon name="info" size={20} color={theme.colors.textLight} />
-                    <Text style={[styles.infoText, {fontSize: hp(1.8)}]}>{user.bio}</Text>
-                  </View>
-                )
-              }
-              
-            </View>
-            
-            {/* 功能列表 */}
-            <View style={styles.featuresContainer}>
-              {features.map((feature) => (
-                <TouchableOpacity 
-                  key={feature.id} 
-                  style={styles.featureItem}
-                  onPress={() => handleFeatureClick(feature.title)}
-                >
-                  <View style={[styles.featureIconContainer, { backgroundColor: feature.color + '20' }]}>
-                    <Ionicons name={feature.icon} size={24} color={feature.color} />
-                  </View>
-                  <Text style={styles.featureText}>{feature.title}</Text>
-                  <Ionicons name="chevron-forward" size={18} color={theme.colors.gray} />
-                </TouchableOpacity>
-              ))}
-            </View>
-            
-            {/* 退出登录按钮 */}
-            <TouchableOpacity 
-              style={styles.logoutBtn}
-              onPress={handleLogout}
-            >
-              <Text style={styles.logoutBtnText}>退出登录</Text>
+    <ScreenWrapper bg="white">
+      <ScrollView style={{flex: 1}} showsVerticalScrollIndicator={false}>
+        <View style={{flex: 1, backgroundColor:'white', paddingHorizontal: wp(4)}}> 
+          <View>
+            <Text style={styles.profileTitle}>个人资料</Text>
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+              <Icon name="logout" size={26} color={theme.colors.rose} />
             </TouchableOpacity>
           </View>
           
+          <View style={styles.container}>
+            <View style={{gap: 15}}>
+              {/* avatar */}
+              <View style={styles.avatarContainer}>
+                <Avatar
+                  uri={user?.image}
+                  size={hp(12)}
+                  rounded={theme.radius.xxl*1.4}
+                />
+                
+                {/* 性别图标 */}
+                {user?.gender && (
+                  <View style={[
+                    styles.genderIcon, 
+                    {backgroundColor: user.gender === '男' ? 'rgba(100, 149, 237, 0.9)' : 'rgba(255, 182, 193, 0.9)'}
+                  ]}>
+                    <FontAwesome5 
+                      name={user.gender === '男' ? 'mars' : 'venus'} 
+                      size={16} 
+                      color="white" 
+                    />
+                  </View>
+                )}
+                
+                <Pressable style={styles.editIcon} onPress={()=> router.push('/editProfile')}>
+                  <Icon name="edit" strokeWidth={2.5} size={20} />
+                </Pressable>
+              </View>
+            
+
+              {/* username & address */}
+              <View style={{alignItems: 'center', gap: 4}}>
+                <Text style={styles.userName}> { user && user.name } </Text>
+                <Text style={styles.infoText}> {user && user.address} </Text>
+              </View>
+              
+              {/* 学院和专业信息 */}
+              {(user?.college || user?.major) && (
+                <View style={styles.educationInfo}>
+                  <Icon name="school" size={20} color={theme.colors.textLight} />
+                  <Text style={[styles.infoText, {fontSize: hp(1.8)}]}>
+                    {user?.college}{user?.major ? ` · ${user.major}` : ''}
+                    {user?.grade ? ` · ${user.grade}` : ''}
+                  </Text>
+                </View>
+              )}
+              
+              {/* 学号信息 */}
+              {user?.StudentIdNumber && (
+                <View style={styles.info}>
+                  <Icon name="idCard" size={20} color={theme.colors.textLight} />
+                  <Text style={[styles.infoText, {fontSize: hp(1.8)}]}>
+                    {user.StudentIdNumber}
+                  </Text>
+                </View>
+              )}
+              
+              {/* 生日信息 */}
+              {user?.birthday && (
+                <View style={styles.info}>
+                  <Icon name="calendar" size={20} color={theme.colors.textLight} />
+                  <Text style={[styles.infoText, {fontSize: hp(1.8)}]}>
+                    {formatBirthday(user.birthday)}
+                  </Text>
+                </View>
+              )}
+
+              {/* email, phone */}
+              <View style={{gap: 10}}>
+                <View style={styles.info}>
+                  <Icon name="mail" size={20} color={theme.colors.textLight} />
+                  <Text style={[styles.infoText, {fontSize: hp(1.8)}]}> 
+                      {user && user.email}
+                    </Text>
+                </View>
+                {
+                  user && user.phoneNumber && (
+                    <View style={styles.info}>
+                      <Icon name="call" size={20} color={theme.colors.textLight} />
+                      <Text style={[styles.infoText, {fontSize: hp(1.8)}]}> 
+                          {
+                            user.phoneNumber
+                          } 
+                      </Text>
+                    </View>
+                  )
+                }
+                
+                {
+                  user && user.bio && (
+                    <View style={styles.bioContainer}>
+                      <Icon name="info" size={20} color={theme.colors.textLight} />
+                      <Text style={[styles.infoText, {fontSize: hp(1.8)}]}>{user.bio}</Text>
+                    </View>
+                  )
+                }
+                
+              </View>
+              
+              {/* 功能列表 */}
+              <View style={styles.featuresContainer}>
+                {features.map((feature) => (
+                  <TouchableOpacity 
+                    key={feature.id} 
+                    style={styles.featureItem}
+                    onPress={() => handleFeatureClick(feature.title)}
+                  >
+                    <View style={[styles.featureIconContainer, { backgroundColor: feature.color + '20' }]}>
+                      <Ionicons name={feature.icon} size={24} color={feature.color} />
+                    </View>
+                    <Text style={styles.featureText}>{feature.title}</Text>
+                    <Ionicons name="chevron-forward" size={18} color={theme.colors.gray} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+              
+              {/* 退出登录按钮 */}
+              <TouchableOpacity 
+                style={styles.logoutBtn}
+                onPress={handleLogout}
+              >
+                <Text style={styles.logoutBtnText}>退出登录</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-      </View>
+      </ScrollView>
+    </ScreenWrapper>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingBottom: 30,
   },
   headerContainer: {
     marginHorizontal: wp(4), 
@@ -351,16 +268,6 @@ const styles = StyleSheet.create({
     padding: 5,
     borderRadius: theme.radius.sm,
     backgroundColor: '#fee2e2'
-  },
-  listStyle: {
-    paddingHorizontal: wp(4),
-    paddingBottom: 30,
-
-  },
-  noPosts: {
-    fontSize: hp(2),
-    textAlign: 'center',
-    color: theme.colors.text
   },
   genderIcon: {
     position: 'absolute',
@@ -428,6 +335,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderRadius: 10,
     alignItems: 'center',
+    marginBottom: 20,
   },
   logoutBtnText: {
     color: theme.colors.rose,
