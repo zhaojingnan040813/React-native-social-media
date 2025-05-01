@@ -25,6 +25,8 @@ import Video from './Video';
 import Eye from './Eye';
 import EyeOff from './EyeOff';
 import Calendar from './Calendar';
+import Bookmark from './Bookmark';
+import BookmarkFill from './BookmarkFill';
 
 
 const icons = {
@@ -52,6 +54,8 @@ const icons = {
     eye: Eye,
     eyeOff: EyeOff,
     calendar: Calendar,
+    bookmark: Bookmark,
+    'bookmark-fill': BookmarkFill,
 }
 
 const Icon = ({name, ...props}) => {

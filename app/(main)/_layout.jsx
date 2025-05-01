@@ -72,6 +72,7 @@ export default function MainLayout() {
       <Tabs.Screen name="notifications" options={{ href: null }} />
       <Tabs.Screen name="search" options={{ href: null }} />
       <Tabs.Screen name="myPosts" options={{ href: null }} />
+      <Tabs.Screen name="myBookmarks" options={{ href: null }} />
     </Tabs>
   )
 }

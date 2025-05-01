@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ToastAndroid, Platform, ActivityIndicator } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { theme } from '../constants/theme';
 import { Image } from 'expo-image';
@@ -12,6 +12,7 @@ import { createPostLike, removePostLike, searchPostsByTag } from '../services/po
 import { Share } from 'react-native';
 import Loading from './Loading';
 import Avatar from './Avatar';
+import { addBookmark, isPostBookmarked, removeBookmark } from '../services/bookmarkService';
 
 const textStyle = {
   color: theme.colors.dark,
@@ -68,11 +69,16 @@ const PostCard = ({
   showDelete=false,
   onDelete=()=>{},
   onEdit=()=>{},
-  onTagPress
+  onTagPress,
+  onBookmarkChange=()=>{}
 }) => {
   const [likes, setLikes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [webViewHeight, setWebViewHeight] = useState(50);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [bookmarkLoading, setBookmarkLoading] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   const liked = likes.filter(like=> like.userId==currentUser?.id)[0]? true: false;
   const createdAt = moment(item?.created_at).format('MMM D');
@@ -94,6 +100,16 @@ const PostCard = ({
 
   useEffect(()=>{
     setLikes(item?.postLikes);
+    
+    // 检查帖子是否已被收藏
+    const checkBookmarkStatus = async () => {
+      const res = await isPostBookmarked(currentUser?.id, item?.id);
+      if (res.success) {
+        setIsBookmarked(res.bookmarked);
+      }
+    };
+    
+    checkBookmarkStatus();
   },[]);
 
   const onLike = async ()=>{
@@ -129,6 +145,55 @@ const PostCard = ({
     }
     Share.share(content);
   }
+  
+  // 显示临时Toast消息
+  const showTemporaryToast = (message) => {
+    if (Platform.OS === 'android') {
+      ToastAndroid.showWithGravityAndOffset(
+        message,
+        ToastAndroid.SHORT,
+        ToastAndroid.BOTTOM,
+        0,
+        100
+      );
+    } else {
+      // iOS自定义Toast
+      setToastMessage(message);
+      setShowToast(true);
+      setTimeout(() => {
+        setShowToast(false);
+      }, 1000);
+    }
+  };
+  
+  // 处理收藏/取消收藏
+  const handleBookmark = async () => {
+    setBookmarkLoading(true);
+    
+    if (isBookmarked) {
+      // 取消收藏
+      const res = await removeBookmark(currentUser?.id, item?.id);
+      if (res.success) {
+        setIsBookmarked(false);
+        onBookmarkChange(item?.id); // 通知父组件收藏状态变化
+        showTemporaryToast('已取消收藏');
+      } else {
+        Alert.alert('提示', '取消收藏失败');
+      }
+    } else {
+      // 添加收藏
+      const res = await addBookmark(currentUser?.id, item?.id);
+      if (res.success) {
+        setIsBookmarked(true);
+        onBookmarkChange(item?.id); // 通知父组件收藏状态变化
+        showTemporaryToast('收藏成功');
+      } else {
+        Alert.alert('提示', '收藏失败');
+      }
+    }
+    
+    setBookmarkLoading(false);
+  };
 
   const handlePostDelete = ()=>{
     Alert.alert('确认', '您确定要删除这个帖子吗?', [
@@ -265,7 +330,7 @@ const PostCard = ({
         }
       </TouchableOpacity>
 
-      {/* like & comment */}
+      {/* like & comment & bookmark */}
       <View style={styles.footer}>
         <View style={styles.footerButton}>
           <TouchableOpacity onPress={onLike}>
@@ -288,6 +353,19 @@ const PostCard = ({
           </Text>
         </View>
         <View style={styles.footerButton}>
+          <TouchableOpacity onPress={handleBookmark} disabled={bookmarkLoading}>
+            {bookmarkLoading ? (
+              <ActivityIndicator size="small" color={theme.colors.primary} />
+            ) : (
+              <Icon 
+                name={isBookmarked ? "bookmark-fill" : "bookmark"} 
+                size={24} 
+                color={isBookmarked ? theme.colors.primary : theme.colors.textLight} 
+              />
+            )}
+          </TouchableOpacity>
+        </View>
+        <View style={styles.footerButton}>
           {
             loading? (
               <Loading size="small" />
@@ -299,6 +377,13 @@ const PostCard = ({
           }
         </View>
       </View>
+
+      {/* iOS Toast */}
+      {Platform.OS === 'ios' && showToast && (
+        <View style={styles.toast}>
+          <Text style={styles.toastText}>{toastMessage}</Text>
+        </View>
+      )}
     </View>
   )
 }
@@ -382,6 +467,22 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: hp(1.6),
     color: theme.colors.primary,
+  },
+  toast: {
+    position: 'absolute',
+    bottom: 30,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    padding: 10,
+    borderRadius: 20,
+    marginHorizontal: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  toastText: {
+    color: 'white',
+    fontSize: hp(1.8),
   },
 })
 
