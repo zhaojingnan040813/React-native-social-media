@@ -58,29 +58,76 @@ const EditProfile = () => {
     }
   };
 
-  const onSubmit = async ()=>{
+  const onSubmit = async () => {
     let userData = {...user};
     let {name, phoneNumber, address, image, bio} = userData;
-    if(!name || !phoneNumber || !address || !image || !bio){
-        Alert.alert('个人资料', "目前只支持填写所有字段后提交修改");
+    
+    // 检查必填字段
+    if(!name.trim()) {
+        Alert.alert('提示', "请输入您的姓名");
+        return;
+    }
+    
+    if(!phoneNumber.trim()) {
+        Alert.alert('提示', "请输入您的电话号码");
+        return;
+    }
+    
+    if(!address.trim()) {
+        Alert.alert('提示', "请输入您的地址");
+        return;
+    }
+    
+    if(!bio.trim()) {
+        Alert.alert('提示', "请输入您的个人简介");
+        return;
+    }
+    
+    if(!image) {
+        Alert.alert('提示', "请上传您的头像");
         return;
     }
     
     setLoading(true);
-    if(typeof image == 'object'){
-      let imageResult = await uploadFile('profiles', image?.uri, true);
-      if(imageResult.success) userData.image = imageResult.data;
-      else userData.image = null;
-    }
     
-    const res = await updateUser(currentUser?.id, userData);
-    setLoading(false);
-    if(res.success){
-      setUserData({...currentUser, ...userData});
-      router.back();
+    try {
+        // 如果是新选择的图片（对象类型），则需要上传
+        if(typeof image == 'object'){
+            console.log('正在上传图片...');
+            let imageResult = await uploadFile('profiles', image?.uri, true);
+            
+            if(imageResult.success) {
+                userData.image = imageResult.data;
+                console.log('图片上传成功:', imageResult.data);
+            } else {
+                // 上传失败但保留旧图片
+                console.log('图片上传失败:', imageResult.msg);
+                Alert.alert('提示', '头像上传失败，将保持原头像不变');
+                userData.image = currentUser.image;
+            }
+        }
+        
+        // 更新用户信息
+        console.log('正在更新用户信息...');
+        const res = await updateUser(currentUser?.id, userData);
+        
+        if(res.success){
+            console.log('用户信息更新成功');
+            // 更新全局状态
+            setUserData({...currentUser, ...userData});
+            Alert.alert('成功', '个人资料已更新', [
+                { text: 'OK', onPress: () => router.back() }
+            ]);
+        } else {
+            console.log('用户信息更新失败:', res.msg);
+            Alert.alert('更新失败', res.msg || '保存个人资料时出错');
+        }
+    } catch (error) {
+        console.error('个人资料更新错误:', error);
+        Alert.alert('错误', '更新个人资料时发生未知错误');
+    } finally {
+        setLoading(false);
     }
-
-    // good to go
   }
 
   let imageSource = user.image && typeof user?.image == 'object'? user.image.uri: getUserImageSrc(user.image);
