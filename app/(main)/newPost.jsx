@@ -12,7 +12,6 @@ import { AntDesign, FontAwesome, FontAwesome6, Ionicons } from '@expo/vector-ico
 import * as ImagePicker from 'expo-image-picker';
 import { Video } from 'expo-av';
 import { createOrUpdatePost } from '../../services/postService'
-import Header from '../../components/Header'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import Avatar from '../../components/Avatar'
 import Icon from '../../assets/icons'
@@ -129,7 +128,10 @@ const NewPost = () => {
   return (
     <ScreenWrapper bg="white">
       <View style={styles.container}>
-        <Header title="创建帖子" mb={15} />
+        {/* 自定义标题，移除Header组件以去掉返回按钮 */}
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>创建帖子</Text>
+        </View>
           
         <ScrollView contentContainerStyle={{gap: 20}}>
           {/* header */}
@@ -224,8 +226,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: wp(4),
     gap: 15,
   },
+  titleContainer: {
+    marginBottom: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+  },
   title: {
-    // marginBottom: 10,
     fontSize: hp(2.5),
     fontWeight: theme.fonts.semibold,
     color: theme.colors.text,
