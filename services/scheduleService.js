@@ -15,20 +15,26 @@ export const getUserCourses = async (userId) => {
 
     if (coursesError) throw coursesError;
 
-    // 获取用户所有课程安排
+    // 获取用户所有课程安排 - 不使用嵌套查询
     const { data: courseItems, error: itemsError } = await supabase
       .from('course_items')
-      .select(`
-        *, 
-        courses(*)
-      `)
+      .select('*')
       .eq('user_id', userId);
 
     if (itemsError) throw itemsError;
 
+    // 手动关联课程信息到课程安排
+    const enhancedCourseItems = courseItems.map(item => {
+      const relatedCourse = courses.find(course => course.course_id === item.course_id) || {};
+      return {
+        ...item,
+        courses: relatedCourse // 保持与原代码一致的结构
+      };
+    });
+
     return {
       courses,
-      courseItems,
+      courseItems: enhancedCourseItems,
     };
   } catch (error) {
     console.error('获取课表失败:', error.message);
@@ -195,19 +201,40 @@ export const getTimeSlots = async () => {
  */
 export const getCoursesByDayAndSlot = async (userId, dayOfWeek, slotId) => {
   try {
-    const { data, error } = await supabase
+    // 获取符合条件的课程安排
+    const { data: courseItems, error: itemsError } = await supabase
       .from('course_items')
-      .select(`
-        *,
-        courses(*)
-      `)
+      .select('*')
       .eq('user_id', userId)
       .eq('day_of_week', dayOfWeek)
       .lte('start_slot', slotId)
       .gte('end_slot', slotId);
 
-    if (error) throw error;
-    return data;
+    if (itemsError) throw itemsError;
+
+    if (!courseItems || courseItems.length === 0) {
+      return [];
+    }
+
+    // 获取相关的课程信息
+    const courseIds = [...new Set(courseItems.map(item => item.course_id))];
+    const { data: courses, error: coursesError } = await supabase
+      .from('courses')
+      .select('*')
+      .in('course_id', courseIds);
+
+    if (coursesError) throw coursesError;
+
+    // 手动关联课程信息
+    const enhancedCourseItems = courseItems.map(item => {
+      const relatedCourse = courses.find(course => course.course_id === item.course_id) || {};
+      return {
+        ...item,
+        courses: relatedCourse
+      };
+    });
+
+    return enhancedCourseItems;
   } catch (error) {
     console.error('获取特定时间课程失败:', error.message);
     throw error;

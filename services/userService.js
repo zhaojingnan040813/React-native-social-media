@@ -43,7 +43,7 @@ export const getUserByStudentId = async (studentId) => {
         const { data, error } = await supabase
             .from('users')
             .select()
-            .eq('StudentIdNumber', studentId)
+            .eq('"StudentIdNumber"', studentId)
             .single();
 
         if (error) {

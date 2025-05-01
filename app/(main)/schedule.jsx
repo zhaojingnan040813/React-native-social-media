@@ -193,6 +193,62 @@ const Schedule = () => {
     setImportModalVisible(false);
   };
 
+  // 删除课程
+  const handleDeleteCourse = async () => {
+    if (!selectedCourse) return;
+    
+    try {
+      const courseId = selectedCourse.course_id;
+      if (!courseId) {
+        Alert.alert('提示', '无法删除课程，未找到课程ID');
+        return;
+      }
+
+      Alert.alert(
+        '确认删除',
+        '确定要删除这个课程吗？',
+        [
+          {
+            text: '取消',
+            style: 'cancel'
+          },
+          {
+            text: '确定',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                setModalVisible(false);
+                setLoading(true);
+                
+                // 删除课程安排
+                await scheduleService.deleteCourseItem(selectedCourse.item_id);
+                
+                // 重新获取数据
+                await fetchScheduleData();
+                
+                Alert.alert('成功', '课程已删除');
+              } catch (error) {
+                console.error('删除课程失败:', error);
+                Alert.alert('错误', '删除课程失败，请重试');
+              } finally {
+                setLoading(false);
+              }
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('删除课程发生错误:', error);
+      Alert.alert('错误', '操作失败，请重试');
+    }
+  };
+
+  // 编辑课程 - 简化版，只显示提示
+  const handleEditCourse = () => {
+    Alert.alert('提示', '课程编辑功能正在开发中，敬请期待');
+    setModalVisible(false);
+  };
+
   return (
     <ScreenWrapper bg="white">
       <View style={styles.container}>
@@ -246,7 +302,7 @@ const Schedule = () => {
               {selectedCourse && (
                 <View style={styles.courseDetails}>
                   <Text style={styles.detailLabel}>课程名称</Text>
-                  <Text style={styles.detailValue}>{selectedCourse.course?.course_name}</Text>
+                  <Text style={styles.detailValue}>{selectedCourse.course?.course_name || selectedCourse.courses?.course_name || '未命名课程'}</Text>
                   
                   <Text style={styles.detailLabel}>上课地点</Text>
                   <Text style={styles.detailValue}>{selectedCourse.location || '未设置'}</Text>
@@ -258,10 +314,16 @@ const Schedule = () => {
                   </Text>
                   
                   <View style={styles.buttonRow}>
-                    <TouchableOpacity style={styles.editButton}>
+                    <TouchableOpacity 
+                      style={styles.editButton}
+                      onPress={handleEditCourse}
+                    >
                       <Text style={styles.editButtonText}>编辑</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.deleteButton}>
+                    <TouchableOpacity 
+                      style={styles.deleteButton}
+                      onPress={handleDeleteCourse}
+                    >
                       <Text style={styles.deleteButtonText}>删除</Text>
                     </TouchableOpacity>
                   </View>

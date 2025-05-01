@@ -29,21 +29,49 @@ export const createNotification = async (notification)=>{
 // 查询通知 
 export const fetchNotifications = async (receiverId)=>{
     try{
-        // we can specify the object: foreignkey (fields), eg: sender: senderId(id, name, image) or receiver: receiverId(id, name, iamge)
-        const { data, error } = await supabase
+        // 1. 获取通知数据
+        const { data: notifications, error: notificationError } = await supabase
         .from('notifications')
-        .select(`
-            *,
-            sender: senderId ( id, name, image )
-        `)
+        .select('*')
         .order('created_at', {ascending: false })
-        .eq('receiverId', receiverId);
+        .eq('"receiverId"', receiverId);
 
-        if(error){
-            console.log('fetchNotifications error: ', error);
+        if(notificationError){
+            console.log('fetchNotifications error: ', notificationError);
             return {success: false, msg: "Could not fetch the notifications"};
         }
-        return {success: true, data: data};
+        
+        if(!notifications || notifications.length === 0) {
+            return {success: true, data: []};
+        }
+        
+        // 2. 获取发送者信息
+        const senderIds = [...new Set(notifications.filter(notif => notif.senderId).map(notif => notif.senderId))];
+        
+        let senders = [];
+        if(senderIds.length > 0) {
+            const { data: sendersData, error: sendersError } = await supabase
+                .from('users')
+                .select('id, name, image')
+                .in('id', senderIds);
+            
+            if(sendersError){
+                console.log('fetchSenders error: ', sendersError);
+            } else {
+                senders = sendersData || [];
+            }
+        }
+        
+        // 3. 关联发送者信息到通知
+        const enrichedNotifications = notifications.map(notification => {
+            const sender = notification.senderId ? senders.find(user => user.id === notification.senderId) : null;
+            return {
+                ...notification,
+                sender
+            };
+        });
+        
+        return {success: true, data: enrichedNotifications};
 
     }catch(error){
         console.log('fetchNotifications error: ', error);
