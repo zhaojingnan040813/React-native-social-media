@@ -1,0 +1,317 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "PingFang SC", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+body {
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+.container {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 10px;
+}
+
+/* 头部样式 */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    position: relative;
+}
+
+.add-btn {
+    width: 30px;
+    height: 30px;
+    background-color: #4a89dc;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.week-selector {
+    display: flex;
+    align-items: center;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.current-week {
+    margin: 0 10px;
+    font-weight: bold;
+    background-color: #6c8eef;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 15px;
+}
+
+.prev-week, .next-week {
+    cursor: pointer;
+    color: #888;
+    font-size: 14px;
+}
+
+/* 星期几样式 */
+.weekdays {
+    display: grid;
+    grid-template-columns: 40px repeat(7, 1fr);
+    text-align: center;
+    font-weight: bold;
+    margin-bottom: 5px;
+    background-color: white;
+    border-radius: 8px 8px 0 0;
+}
+
+.weekday {
+    padding: 8px 0;
+}
+
+/* 课表主体样式 */
+.timetable {
+    display: flex;
+    border-radius: 0 0 8px 8px;
+    overflow: hidden;
+    background-color: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.time-col {
+    width: 40px;
+    flex-shrink: 0;
+    background-color: #f9f9f9;
+}
+
+.time-slot {
+    height: 160px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    position: relative;
+}
+
+.slot-num {
+    font-weight: bold;
+    margin-bottom: 3px;
+}
+
+.slot-time {
+    font-size: 10px;
+    color: #888;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.schedule-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-template-rows: repeat(6, 160px);
+    flex-grow: 1;
+}
+
+/* 课程方块样式 */
+.course-block {
+    border-radius: 5px;
+    margin: 2px;
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    font-size: 12px;
+    color: white;
+    cursor: pointer;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.course-name {
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.course-time {
+    font-size: 10px;
+    background-color: rgba(255, 255, 255, 0.2);
+    padding: 2px 5px;
+    border-radius: 8px;
+    margin-bottom: 4px;
+}
+
+.course-location {
+    font-size: 10px;
+}
+
+/* 颜色样式 */
+.blue {
+    background-color: rgba(106, 191, 240, 0.8);
+}
+
+.green {
+    background-color: rgba(72, 207, 173, 0.8);
+}
+
+.purple {
+    background-color: rgba(155, 89, 182, 0.8);
+}
+
+.yellow {
+    background-color: rgba(241, 196, 15, 0.8);
+}
+
+.orange {
+    background-color: rgba(230, 126, 34, 0.8);
+}
+
+/* 空白单元格样式 */
+.empty-cell {
+    background-color: transparent;
+    border: 1px dashed #ddd;
+    border-radius: 5px;
+    margin: 2px;
+    cursor: pointer;
+}
+
+/* 弹窗样式 */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: white;
+    border-radius: 10px;
+    width: 80%;
+    max-width: 400px;
+    padding: 20px;
+    position: relative;
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.close-btn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 24px;
+    cursor: pointer;
+    color: #888;
+}
+
+.modal h2 {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.time-display {
+    background-color: #f5f5f5;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+}
+
+.btn-group {
+    display: flex;
+    justify-content: space-between;
+}
+
+button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+#saveBtn {
+    background-color: #4a89dc;
+    color: white;
+    flex: 2;
+}
+
+#deleteBtn {
+    background-color: #e74c3c;
+    color: white;
+    flex: 1;
+    margin-left: 10px;
+}
+
+/* 导入选项样式 */
+.import-options {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.import-option {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    border-radius: 8px;
+    background-color: #f5f5f5;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.import-option:hover {
+    background-color: #e0e0e0;
+}
+
+.option-icon {
+    font-size: 24px;
+    margin-right: 15px;
+}
+
+.option-text {
+    font-weight: bold;
+} 
