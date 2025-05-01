@@ -1,4 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // 月份数据
+    const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+    let currentMonthIndex = 4; // 默认显示5月
+    
     // 初始化课表网格
     initScheduleGrid();
     
@@ -9,6 +13,27 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelector('.add-btn').addEventListener('click', function() {
         showImportModal();
     });
+    
+    // 上个月按钮点击事件
+    document.querySelector('.prev-week').addEventListener('click', function() {
+        if (currentMonthIndex > 0) {
+            currentMonthIndex--;
+            updateMonthDisplay();
+        }
+    });
+    
+    // 下个月按钮点击事件
+    document.querySelector('.next-week').addEventListener('click', function() {
+        if (currentMonthIndex < months.length - 1) {
+            currentMonthIndex++;
+            updateMonthDisplay();
+        }
+    });
+    
+    // 更新月份显示
+    function updateMonthDisplay() {
+        document.querySelector('.current-week').textContent = months[currentMonthIndex];
+    }
     
     // 关闭弹窗按钮点击事件
     document.querySelectorAll('.close-btn').forEach(function(btn) {

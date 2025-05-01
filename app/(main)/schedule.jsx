@@ -12,14 +12,16 @@ import { useFocusEffect } from '@react-navigation/native'
 // 周几标题
 const weekdays = ['一', '二', '三', '四', '五', '六', '日'];
 
+// 月份数据
+const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+
 // 时间段定义
 const DEFAULT_TIME_SLOTS = [
   { slot_id: 1, slot_name: '1-2节', start_time: '08:00', end_time: '09:40' },
   { slot_id: 2, slot_name: '3-4节', start_time: '10:00', end_time: '11:30' },
   { slot_id: 3, slot_name: '5-6节', start_time: '13:30', end_time: '15:10' },
   { slot_id: 4, slot_name: '7-8节', start_time: '15:20', end_time: '17:00' },
-  { slot_id: 5, slot_name: '9-10节', start_time: '17:10', end_time: '19:50' },
-  { slot_id: 6, slot_name: '11-12节', start_time: '19:10', end_time: '21:00' }
+  { slot_id: 5, slot_name: '9-10节', start_time: '17:10', end_time: '18:50' }, 
 ];
 
 // 颜色映射
@@ -37,7 +39,7 @@ const Schedule = () => {
   const [timeSlots, setTimeSlots] = useState(DEFAULT_TIME_SLOTS);
   const [courses, setCourses] = useState([]);
   const [courseItems, setCourseItems] = useState([]);
-  const [currentWeek, setCurrentWeek] = useState('5月');
+  const [currentMonthIndex, setCurrentMonthIndex] = useState(4); // 默认显示5月
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [importModalVisible, setImportModalVisible] = useState(false);
@@ -75,6 +77,19 @@ const Schedule = () => {
       return () => {};
     }, [user?.id])
   );
+
+  // 处理月份切换
+  const handlePrevMonth = () => {
+    if (currentMonthIndex > 0) {
+      setCurrentMonthIndex(currentMonthIndex - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (currentMonthIndex < months.length - 1) {
+      setCurrentMonthIndex(currentMonthIndex + 1);
+    }
+  };
 
   // 查找指定时间段和星期的课程
   const getCourseByDayAndSlot = (day, slotId) => {
@@ -141,23 +156,12 @@ const Schedule = () => {
   const renderTimetable = () => {
     return (
       <View style={styles.timetable}>
-        {/* 时间栏 */}
-        <View style={styles.timeColumn}>
-          {timeSlots.map((slot) => (
-            <View key={slot.slot_id} style={styles.timeSlot}>
-              <Text style={styles.slotLabel}>{slot.slot_name}</Text>
-              <Text style={styles.slotTime}>
-                {slot.start_time.substring(0, 5)}{'\n'}
-                {slot.end_time.substring(0, 5)}
-              </Text>
-            </View>
-          ))}
-        </View>
-        
-        {/* 课程网格 */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={styles.courseGrid}>
-            {/* 星期几标题 */}
+        {/* 星期几标题栏 */}
+        <View style={styles.weekdayHeaderContainer}>
+          <View style={styles.timeColumnHeader}>
+            <Text style={styles.timeHeaderText}>时间</Text>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.weekdayRow}>
               {weekdays.map((day, index) => (
                 <View key={index} style={styles.weekdayCell}>
@@ -165,17 +169,40 @@ const Schedule = () => {
                 </View>
               ))}
             </View>
+          </ScrollView>
+        </View>
+        
+        {/* 课表内容区域 - 支持垂直滚动 */}
+        <ScrollView style={styles.tableContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.tableContentInner}>
+            {/* 时间栏 */}
+            <View style={styles.timeColumn}>
+              {timeSlots.map((slot) => (
+                <View key={slot.slot_id} style={styles.timeSlot}>
+                  <Text style={styles.slotLabel}>{slot.slot_name}</Text>
+                  <Text style={styles.slotTime}>
+                    {slot.start_time.substring(0, 5)}{'\n'}
+                    {slot.end_time.substring(0, 5)}
+                  </Text>
+                </View>
+              ))}
+            </View>
             
-            {/* 课程卡片行 */}
-            {timeSlots.map((slot) => (
-              <View key={slot.slot_id} style={styles.courseRow}>
-                {weekdays.map((_, dayIndex) => (
-                  <View key={dayIndex} style={styles.courseCell}>
-                    {renderCourseCard(dayIndex + 1, slot)}
+            {/* 课程网格 */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.courseGrid}>
+                {/* 课程卡片行 */}
+                {timeSlots.map((slot) => (
+                  <View key={slot.slot_id} style={styles.courseRow}>
+                    {weekdays.map((_, dayIndex) => (
+                      <View key={dayIndex} style={styles.courseCell}>
+                        {renderCourseCard(dayIndex + 1, slot)}
+                      </View>
+                    ))}
                   </View>
                 ))}
               </View>
-            ))}
+            </ScrollView>
           </View>
         </ScrollView>
       </View>
@@ -259,13 +286,13 @@ const Schedule = () => {
           </TouchableOpacity>
           
           <View style={styles.weekSelector}>
-            <TouchableOpacity style={styles.weekNav}>
+            <TouchableOpacity style={styles.weekNav} onPress={handlePrevMonth}>
               <AntDesign name="left" size={20} color="#6c8eef" />
             </TouchableOpacity>
             <View style={styles.currentWeek}>
-              <Text style={styles.currentWeekText}>{currentWeek}</Text>
+              <Text style={styles.currentWeekText}>{months[currentMonthIndex]}</Text>
             </View>
-            <TouchableOpacity style={styles.weekNav}>
+            <TouchableOpacity style={styles.weekNav} onPress={handleNextMonth}>
               <AntDesign name="right" size={20} color="#6c8eef" />
             </TouchableOpacity>
           </View>
@@ -418,14 +445,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 10,
     marginBottom: 10,
+    position: 'relative',
   },
   addButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#4cd964',
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'absolute',
+    right: 0,
+    top: -7,
   },
   weekSelector: {
     flexDirection: 'row',
@@ -451,6 +482,26 @@ const styles = StyleSheet.create({
   },
   timetable: {
     flex: 1,
+    flexDirection: 'column',
+  },
+  weekdayHeaderContainer: {
+    flexDirection: 'row',
+    height: 40,
+  },
+  timeColumnHeader: {
+    width: wp(15),
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8f8f8',
+  },
+  timeHeaderText: {
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  tableContent: {
+    flex: 1,
+  },
+  tableContentInner: {
     flexDirection: 'row',
   },
   timeColumn: {
