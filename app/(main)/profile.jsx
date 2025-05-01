@@ -135,6 +135,25 @@ const UserHeader = ({user, handleLogout, router})=>{
     return moment(dateString).format('YYYY-MM-DD');
   };
 
+  // 处理点击特性项
+  const handleFeatureClick = (feature) => {
+    if (feature === '我的帖子') {
+      router.push('/myPosts');
+    } else {
+      Alert.alert('提示', '该功能正在开发中，敬请期待！');
+    }
+  };
+
+  // 特性列表数据
+  const features = [
+    { id: 1, title: '我的帖子', icon: 'document-text', color: '#4ab1fa' },
+    { id: 2, title: '消息通知', icon: 'notifications', color: '#4cd964' },
+    { id: 3, title: '我的收藏', icon: 'bookmark', color: '#ffcc00' },
+    { id: 4, title: '浏览历史', icon: 'time', color: '#34aadc' },
+    { id: 5, title: '帮助与反馈', icon: 'help-circle', color: '#ff9500' },
+    { id: 6, title: '关于作者', icon: 'information-circle', color: '#ff3b30' },
+  ];
+
   return (
     <View style={{flex: 1, backgroundColor:'white'}}> 
         <View>
@@ -242,6 +261,31 @@ const UserHeader = ({user, handleLogout, router})=>{
               }
               
             </View>
+            
+            {/* 功能列表 */}
+            <View style={styles.featuresContainer}>
+              {features.map((feature) => (
+                <TouchableOpacity 
+                  key={feature.id} 
+                  style={styles.featureItem}
+                  onPress={() => handleFeatureClick(feature.title)}
+                >
+                  <View style={[styles.featureIconContainer, { backgroundColor: feature.color + '20' }]}>
+                    <Ionicons name={feature.icon} size={24} color={feature.color} />
+                  </View>
+                  <Text style={styles.featureText}>{feature.title}</Text>
+                  <Ionicons name="chevron-forward" size={18} color={theme.colors.gray} />
+                </TouchableOpacity>
+              ))}
+            </View>
+            
+            {/* 退出登录按钮 */}
+            <TouchableOpacity 
+              style={styles.logoutBtn}
+              onPress={handleLogout}
+            >
+              <Text style={styles.logoutBtnText}>退出登录</Text>
+            </TouchableOpacity>
           </View>
           
         </View>
@@ -344,7 +388,52 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(200, 200, 200, 0.1)',
     padding: 8,
     borderRadius: 10,
-  }
+  },
+  featuresContainer: {
+    marginTop: 20,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 10,
+    borderBottomWidth: 0.5,
+    borderBottomColor: theme.colors.gray + '30',
+  },
+  featureIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  featureText: {
+    flex: 1,
+    fontSize: hp(1.8),
+    fontWeight: '500',
+    color: theme.colors.text,
+  },
+  logoutBtn: {
+    marginTop: 20,
+    backgroundColor: '#fee2e2',
+    paddingVertical: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  logoutBtnText: {
+    color: theme.colors.rose,
+    fontWeight: '600',
+    fontSize: hp(1.8),
+  },
 })
 
 export default Profile
