@@ -159,11 +159,21 @@ const EditProfile = () => {
 
   let imageSource = user.image && typeof user?.image == 'object'? user.image.uri: getUserImageSrc(user.image);
   
+  // 自定义返回函数，直接返回到个人资料页面
+  const handleGoBack = () => {
+    router.push('/profile');
+  };
+  
   return (
     <ScreenWrapper bg="white">
         <View style={styles.container}>
             <ScrollView style={{flex: 1}}>   
-                <Header title="编辑个人资料" />
+                <View style={styles.headerContainer}>
+                    <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
+                        <Icon name="arrowLeft" strokeWidth={2.5} size={26} color={theme.colors.text} />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>编辑个人资料</Text>
+                </View>
                
                 {/* form */}
                 <View style={styles.form}>
@@ -559,6 +569,27 @@ const styles = StyleSheet.create({
   selectedText: {
     color: theme.colors.primary,
     fontWeight: 'bold',
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+    marginVertical: 5,
+    position: 'relative',
+  },
+  backButton: {
+    padding: 5,
+    position: 'absolute',
+    left: 0,
+    zIndex: 1,
+    backgroundColor: 'rgba(0,0,0,0.07)',
+    borderRadius: theme.radius.sm,
+  },
+  headerTitle: {
+    fontSize: hp(2.7),
+    fontWeight: '600',
+    color: theme.colors.textDark
   },
 })
 
