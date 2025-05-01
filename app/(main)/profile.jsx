@@ -1,5 +1,5 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, TouchableOpacity, Alert, FlatList } from 'react-native'
-import React, { useState, useEffect } from 'react'
+import { View, Text, StyleSheet, ScrollView, Pressable, TouchableOpacity, Alert, FlatList, RefreshControl } from 'react-native'
+import React, { useState, useEffect, useCallback } from 'react'
 import { hp, wp } from '../../helpers/common'
 import { useAuth } from '../../contexts/AuthContext'
 import { theme } from '../../constants/theme'
@@ -21,6 +21,7 @@ const Profile = () => {
   const [posts, setPosts] = useState([]);
   const [hasMore, setHasMore] = useState(true);
   const [limit, setLimit] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
 
   // 添加 useEffect 钩子来在组件挂载时获取帖子
   useEffect(() => {
@@ -28,7 +29,7 @@ const Profile = () => {
     getPosts();
   }, []); // 空依赖数组表示仅在组件挂载时执行一次
 
-  const getPosts = async ()=>{
+  const getPosts = async () => {
     if(!hasMore) return null; // if no more posts then don't call the api
     const newLimit = limit + 10; // get 10 more posts everytime
     setLimit(newLimit);
@@ -39,6 +40,23 @@ const Profile = () => {
       setPosts(res.data);
     }
   }
+  
+  // 添加下拉刷新处理函数
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    setLimit(0);
+    setHasMore(true);
+    try {
+      const res = await fetchPosts(10, user.id);
+      if(res.success){
+        setPosts(res.data);
+      }
+    } catch (error) {
+      console.error('刷新时出错:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [user.id]);
   
   const onLogout = async () => {
     const result = await logout();
@@ -86,6 +104,14 @@ const Profile = () => {
           // console.log('got to the end');
         }}
         onEndReachedThreshold={0} //  Specifies how close to the bottom the user must scroll before endreached is triggers, 0 -> 1
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[theme.colors.primary]}
+            tintColor={theme.colors.primary}
+          />
+        }
         ListFooterComponent={hasMore? (
             <View style={{marginTop: posts.length==0? 100: 30}}>
               <Loading />
@@ -105,7 +131,7 @@ const UserHeader = ({user, handleLogout, router})=>{
   return (
     <View style={{flex: 1, backgroundColor:'white'}}> 
         <View>
-          <Header title="个人资料" mb={30} />
+          <Text style={styles.profileTitle}>个人资料</Text>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <Icon name="logout" size={26} color={theme.colors.rose} />
           </TouchableOpacity>
@@ -214,7 +240,13 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: theme.colors.textLight
   },
-
+  profileTitle: {
+    fontSize: hp(2.5),
+    fontWeight: 'bold',
+    color: theme.colors.text,
+    textAlign: 'center',
+    marginVertical: 15
+  },
   logoutButton: {
     position: 'absolute',
     right: 0,
@@ -232,8 +264,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: theme.colors.text
   }
-
-  
 })
 
 export default Profile
