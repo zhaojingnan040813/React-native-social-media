@@ -66,14 +66,14 @@ export default function MainLayout() {
           tabBarIcon: ({ color }) => <Icon name="user" size={24} color={color} />
         }}
       />
-      <Tabs.Screen name="postDetails" options={{ href: null }} />
-      <Tabs.Screen name="newPost" options={{ href: null }} />
-      <Tabs.Screen name="editProfile" options={{ href: null }} />
-      <Tabs.Screen name="notifications" options={{ href: null }} />
-      <Tabs.Screen name="search" options={{ href: null }} />
-      <Tabs.Screen name="myPosts" options={{ href: null }} />
-      <Tabs.Screen name="myBookmarks" options={{ href: null }} />
-      <Tabs.Screen name="aboutAuthor" options={{ href: null }} />
+      <Tabs.Screen name="postDetails" options={{ href: null, tabBar: () => null }} />
+      <Tabs.Screen name="newPost" options={{ href: null, tabBar: () => null }} />
+      <Tabs.Screen name="editProfile" options={{ href: null, tabBar: () => null }} />
+      <Tabs.Screen name="notifications" options={{ href: null, tabBar: () => null }} />
+      <Tabs.Screen name="search" options={{ href: null, tabBar: () => null }} />
+      <Tabs.Screen name="myPosts" options={{ href: null, tabBar: () => null }} />
+      <Tabs.Screen name="myBookmarks" options={{ href: null, tabBar: () => null }} />
+      <Tabs.Screen name="aboutAuthor" options={{ href: null, tabBar: () => null }} />
     </Tabs>
   )
 }

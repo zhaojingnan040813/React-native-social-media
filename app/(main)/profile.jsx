@@ -51,13 +51,13 @@ const Profile = () => {
   // 处理点击特性项
   const handleFeatureClick = (feature) => {
     if (feature === '我的帖子') {
-      router.push('/myPosts');
+      router.push('/(secondary)/myPosts');
     } else if (feature === '消息通知') {
-      router.push('/notifications');
+      router.push('/(secondary)/notifications');
     } else if (feature === '我的收藏') {
-      router.push('/myBookmarks');
+      router.push('/(secondary)/myBookmarks');
     } else if (feature === '关于作者') {
-      router.push('/aboutAuthor');
+      router.push('/(secondary)/aboutAuthor');
     } else {
       Alert.alert('提示', '该功能正在开发中，敬请期待！');
     }
