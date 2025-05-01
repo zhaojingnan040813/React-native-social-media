@@ -46,6 +46,7 @@ const EditProfile = () => {
     major: '',
     grade: '',
     StudentIdNumber: '',
+    email: '',
   });
 
   useEffect(()=>{
@@ -62,6 +63,7 @@ const EditProfile = () => {
             major: currentUser.major || '',
             grade: currentUser.grade || '',
             StudentIdNumber: currentUser.StudentIdNumber || '',
+            email: currentUser.email || '',
         });
     }
   },[currentUser]);
@@ -96,12 +98,21 @@ const EditProfile = () => {
 
   const onSubmit = async () => {
     let userData = {...user};
-    let {name, phoneNumber, address, image} = userData;
+    let {name, phoneNumber, address, image, email} = userData;
     
     // 检查必填字段
     if(!name.trim()) {
         Alert.alert('提示', "请输入您的姓名");
         return;
+    }
+    
+    // 验证邮箱格式
+    if(email && email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if(!emailRegex.test(email)) {
+        Alert.alert('提示', "请输入有效的邮箱地址");
+        return;
+      }
     }
     
     setLoading(true);
@@ -370,6 +381,17 @@ const EditProfile = () => {
                       placeholderTextColor={theme.colors.textLight}
                       value={user.phoneNumber}
                       onChangeText={value=> setUser({...user, phoneNumber: value})}
+                    />
+                    
+                    {/* 邮箱 - 添加在电话号码之后 */}
+                    <Input
+                      icon={<Icon name="mail" size={26} />}
+                      placeholder='输入您的邮箱'
+                      placeholderTextColor={theme.colors.textLight}
+                      value={user.email}
+                      onChangeText={value=> setUser({...user, email: value})}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
                     />
                     
                     {/* 地址 */}

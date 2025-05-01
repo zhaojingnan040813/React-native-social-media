@@ -9,7 +9,13 @@ create table users
     "StudentIdNumber" text,
     address           text,
     "phoneNumber"     text,
-    password          text
+    password          text,
+    gender            varchar(10),
+    birthday          date,
+    college           text,
+    major             text,
+    grade             varchar(20),
+    email             varchar(255)
 )
 
 

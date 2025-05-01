@@ -33,7 +33,8 @@ export const getUserData = async (userId)=>{
             birthday,
             college,
             major,
-            grade
+            grade,
+            email
         `)
         .eq('id', userId)
         .single();

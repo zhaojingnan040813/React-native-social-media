@@ -67,3 +67,7 @@ ALTER TABLE users
     ADD COLUMN grade VARCHAR(20);            -- 年级（如'大一'，'大二'等）
 
 -- 注意：学号字段(StudentIdNumber)已经存在，无需添加
+
+ALTER TABLE users
+ADD COLUMN email VARCHAR(255);
+
