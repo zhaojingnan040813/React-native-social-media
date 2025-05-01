@@ -51,3 +51,5 @@ npm run reset-project
 
 
 后续我在开发一个页面，请选择你的方向，有前端，后端两个选项，然后会有一个转盘，会弹出来Vue , React , GO , Spring Boot 这样相关的文章
+
+你需要保证UI风格一致

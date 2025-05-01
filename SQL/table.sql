@@ -119,10 +119,10 @@ create table bookmarks
     created_at timestamp with time zone default now() not null,
     "postId"   bigint                                 not null,
     "userId"   uuid                                   not null,
-    constraint fk_bookmarks_post
-        foreign key ("postId") references posts(id) on delete cascade,
-    constraint fk_bookmarks_user
-        foreign key ("userId") references users(id) on delete cascade,
+    -- constraint fk_bookmarks_post
+    --     foreign key ("postId") references posts(id) on delete cascade,
+    -- constraint fk_bookmarks_user
+    --     foreign key ("userId") references users(id) on delete cascade,
     constraint unique_bookmark
         unique ("postId", "userId")
 );
