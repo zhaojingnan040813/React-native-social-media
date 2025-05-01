@@ -79,6 +79,7 @@ const Schedule = () => {
   const [courseLocation, setCourseLocation] = useState('');
   const [courseColor, setCourseColor] = useState('blue');
   const [colorPickerVisible, setColorPickerVisible] = useState(false);
+  const [savingCourse, setSavingCourse] = useState(false); // 添加保存状态
 
   // 获取当前周次
   const getCurrentWeek = () => {
@@ -376,7 +377,7 @@ const Schedule = () => {
         return;
       }
       
-      setLoading(true);
+      setSavingCourse(true); // 开始保存，显示加载状态
       
       // 创建新的课程
       const newCourse = {
@@ -420,6 +421,7 @@ const Schedule = () => {
       console.error('添加课程失败:', error);
       Alert.alert('错误', '添加课程失败，请重试');
     } finally {
+      setSavingCourse(false); // 结束保存，取消加载状态
       setLoading(false);
     }
   };
@@ -655,8 +657,13 @@ const Schedule = () => {
                   <TouchableOpacity 
                     style={styles.saveButton}
                     onPress={handleAddCourse}
+                    disabled={savingCourse}
                   >
-                    <Text style={styles.saveButtonText}>保存</Text>
+                    {savingCourse ? (
+                      <ActivityIndicator color="white" size="small" />
+                    ) : (
+                      <Text style={styles.saveButtonText}>保存</Text>
+                    )}
                   </TouchableOpacity>
                 </View>
               )}
@@ -982,6 +989,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 5,
     marginTop: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 48,
   },
   saveButtonText: {
     color: 'white',
