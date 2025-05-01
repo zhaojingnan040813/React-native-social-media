@@ -15,20 +15,20 @@ const weekdays = ['一', '二', '三', '四', '五', '六', '日'];
 // 月份数据
 const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
 
-// 月份对应的学期周次映射（简化版）
+// 月份对应的周次映射（每个月4周）
 const MONTH_TO_WEEKS = {
   0: { semester: '春季', weeks: [1, 2, 3, 4] },      // 1月
   1: { semester: '春季', weeks: [5, 6, 7, 8] },      // 2月
   2: { semester: '春季', weeks: [9, 10, 11, 12] },   // 3月
   3: { semester: '春季', weeks: [13, 14, 15, 16] },  // 4月
   4: { semester: '春季', weeks: [17, 18, 19, 20] },  // 5月
-  5: { semester: '暑假', weeks: [] },                // 6月
-  6: { semester: '暑假', weeks: [] },                // 7月
-  7: { semester: '暑假', weeks: [] },                // 8月
-  8: { semester: '秋季', weeks: [1, 2, 3, 4] },      // 9月
-  9: { semester: '秋季', weeks: [5, 6, 7, 8] },      // 10月
-  10: { semester: '秋季', weeks: [9, 10, 11, 12] },  // 11月
-  11: { semester: '秋季', weeks: [13, 14, 15, 16] }  // 12月
+  5: { semester: '春季', weeks: [21, 22, 23, 24] },  // 6月
+  6: { semester: '秋季', weeks: [1, 2, 3, 4] },      // 7月
+  7: { semester: '秋季', weeks: [5, 6, 7, 8] },      // 8月
+  8: { semester: '秋季', weeks: [9, 10, 11, 12] },   // 9月
+  9: { semester: '秋季', weeks: [13, 14, 15, 16] },  // 10月
+  10: { semester: '秋季', weeks: [17, 18, 19, 20] }, // 11月
+  11: { semester: '秋季', weeks: [21, 22, 23, 24] }  // 12月
 };
 
 // 时间段定义
@@ -49,6 +49,18 @@ const COLOR_MAP = {
   orange: 'rgba(230, 126, 34, 0.8)'
 };
 
+// 计算当前日期应该显示的周索引
+const getCurrentWeekIndex = () => {
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentDate = now.getDate();
+  
+  // 简单算法：将月份分为4段，根据当前日期判断在第几周
+  // 例如：1-7日是第一周，8-14日是第二周，15-21是第三周，22及以后是第四周
+  const weekInMonth = Math.min(Math.floor((currentDate - 1) / 7), 3);
+  return weekInMonth;
+};
+
 const Schedule = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -57,6 +69,7 @@ const Schedule = () => {
   const [courseItems, setCourseItems] = useState([]);
   const [currentMonthIndex, setCurrentMonthIndex] = useState(new Date().getMonth()); // 默认当前月份
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear()); // 当前年份
+  const [currentWeekIndex, setCurrentWeekIndex] = useState(getCurrentWeekIndex()); // 根据当前日期计算周索引
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [importModalVisible, setImportModalVisible] = useState(false);
@@ -67,8 +80,13 @@ const Schedule = () => {
   const [courseColor, setCourseColor] = useState('blue');
   const [colorPickerVisible, setColorPickerVisible] = useState(false);
 
+  // 获取当前周次
+  const getCurrentWeek = () => {
+    return MONTH_TO_WEEKS[currentMonthIndex].weeks[currentWeekIndex];
+  };
+
   // 获取课表数据
-  const fetchScheduleData = async (monthIndex = currentMonthIndex, year = currentYear) => {
+  const fetchScheduleData = async (monthIndex = currentMonthIndex, year = currentYear, weekIndex = currentWeekIndex) => {
     try {
       setLoading(true);
       
@@ -81,12 +99,13 @@ const Schedule = () => {
       if (user?.id) {
         // 获取月份对应的周次信息
         const monthInfo = MONTH_TO_WEEKS[monthIndex];
+        const currentWeek = monthInfo.weeks[weekIndex];
         
-        // 获取课程数据，传入学期和周次信息用于筛选
-        const { courses, courseItems } = await scheduleService.getUserCoursesByMonth(
+        // 获取课程数据，只传入当前周次
+        const { courses, courseItems } = await scheduleService.getUserCoursesByWeek(
           user.id,
           monthInfo.semester,
-          monthInfo.weeks,
+          currentWeek,
           year
         );
         
@@ -104,35 +123,61 @@ const Schedule = () => {
   // 页面聚焦时重新加载数据
   useFocusEffect(
     React.useCallback(() => {
-      fetchScheduleData(currentMonthIndex, currentYear);
+      // 首次进入时，确保加载当前日期对应的月份和周次
+      const now = new Date();
+      const month = now.getMonth();
+      const year = now.getFullYear();
+      const weekIndex = getCurrentWeekIndex();
+      
+      // 预先设置状态，确保UI显示正确
+      setCurrentMonthIndex(month);
+      setCurrentYear(year);
+      setCurrentWeekIndex(weekIndex);
+      
+      // 加载课表数据
+      fetchScheduleData(month, year, weekIndex);
+      
       return () => {};
-    }, [user?.id, currentMonthIndex, currentYear])
+    }, [user?.id]) // 只在用户ID变化或组件挂载时执行
   );
 
-  // 处理月份切换
-  const handlePrevMonth = () => {
-    if (currentMonthIndex > 0) {
-      // 同年上一个月
-      setCurrentMonthIndex(currentMonthIndex - 1);
-      fetchScheduleData(currentMonthIndex - 1, currentYear);
+  // 处理周次切换
+  const handlePrevWeek = () => {
+    if (currentWeekIndex > 0) {
+      // 同月上一周
+      const newWeekIndex = currentWeekIndex - 1;
+      setCurrentWeekIndex(newWeekIndex);
+      fetchScheduleData(currentMonthIndex, currentYear, newWeekIndex);
     } else {
-      // 上一年12月
-      setCurrentMonthIndex(11);
-      setCurrentYear(currentYear - 1);
-      fetchScheduleData(11, currentYear - 1);
+      // 上个月的最后一周
+      const prevMonthIndex = currentMonthIndex > 0 ? currentMonthIndex - 1 : 11;
+      const prevYear = currentMonthIndex > 0 ? currentYear : currentYear - 1;
+      
+      // 设置为上个月的最后一周
+      const lastWeekIndex = 3; // 每个月固定4周，索引0-3
+      setCurrentMonthIndex(prevMonthIndex);
+      setCurrentYear(prevYear);
+      setCurrentWeekIndex(lastWeekIndex);
+      fetchScheduleData(prevMonthIndex, prevYear, lastWeekIndex);
     }
   };
 
-  const handleNextMonth = () => {
-    if (currentMonthIndex < 11) {
-      // 同年下一个月
-      setCurrentMonthIndex(currentMonthIndex + 1);
-      fetchScheduleData(currentMonthIndex + 1, currentYear);
+  const handleNextWeek = () => {
+    if (currentWeekIndex < 3) { // 每个月固定4周，索引0-3
+      // 同月下一周
+      const newWeekIndex = currentWeekIndex + 1;
+      setCurrentWeekIndex(newWeekIndex);
+      fetchScheduleData(currentMonthIndex, currentYear, newWeekIndex);
     } else {
-      // 下一年1月
-      setCurrentMonthIndex(0);
-      setCurrentYear(currentYear + 1);
-      fetchScheduleData(0, currentYear + 1);
+      // 下个月的第一周
+      const nextMonthIndex = currentMonthIndex < 11 ? currentMonthIndex + 1 : 0;
+      const nextYear = currentMonthIndex < 11 ? currentYear : currentYear + 1;
+      
+      // 设置为下个月的第一周
+      setCurrentMonthIndex(nextMonthIndex);
+      setCurrentYear(nextYear);
+      setCurrentWeekIndex(0);
+      fetchScheduleData(nextMonthIndex, nextYear, 0);
     }
   };
 
@@ -343,10 +388,8 @@ const Schedule = () => {
       // 保存课程到数据库
       const course = await scheduleService.addCourse(newCourse);
       
-      // 获取当前月份对应的周次
-      const monthInfo = MONTH_TO_WEEKS[currentMonthIndex];
-      const startWeek = monthInfo.weeks.length > 0 ? monthInfo.weeks[0] : 1;
-      const endWeek = monthInfo.weeks.length > 0 ? monthInfo.weeks[monthInfo.weeks.length - 1] : 20;
+      // 获取当前周次
+      const currentWeek = getCurrentWeek();
       
       // 创建课程安排
       const courseItem = {
@@ -356,16 +399,15 @@ const Schedule = () => {
         start_slot: selectedSlot.slot.slot_id,
         end_slot: selectedSlot.slot.slot_id,  // 假设课程只占一个时间段，可根据需要调整
         location: courseLocation.trim(),
-        week_start: startWeek,
-        week_end: endWeek
-        // 移除 weeks_pattern 字段，暂时不使用
+        week_start: currentWeek,
+        week_end: currentWeek
       };
       
       // 保存课程安排到数据库
       await scheduleService.addCourseItem(courseItem);
       
       // 重新加载数据
-      await fetchScheduleData(currentMonthIndex, currentYear);
+      await fetchScheduleData(currentMonthIndex, currentYear, currentWeekIndex);
       
       // 重置表单并关闭模态框
       setCourseName('');
@@ -424,25 +466,18 @@ const Schedule = () => {
           </TouchableOpacity>
           
           <View style={styles.weekSelector}>
-            <TouchableOpacity style={styles.weekNav} onPress={handlePrevMonth}>
+            <TouchableOpacity style={styles.weekNav} onPress={handlePrevWeek}>
               <AntDesign name="left" size={20} color="#6c8eef" />
             </TouchableOpacity>
             <View style={styles.currentWeek}>
               <Text style={styles.currentWeekText}>
-                {currentYear}年{months[currentMonthIndex]}
+                {currentYear}年{months[currentMonthIndex]} 第{currentWeekIndex + 1}周
               </Text>
             </View>
-            <TouchableOpacity style={styles.weekNav} onPress={handleNextMonth}>
+            <TouchableOpacity style={styles.weekNav} onPress={handleNextWeek}>
               <AntDesign name="right" size={20} color="#6c8eef" />
             </TouchableOpacity>
           </View>
-          
-          <Text style={styles.semesterInfo}>
-            {MONTH_TO_WEEKS[currentMonthIndex].semester}学期
-            {MONTH_TO_WEEKS[currentMonthIndex].weeks.length > 0 ? 
-              ` | 第${MONTH_TO_WEEKS[currentMonthIndex].weeks[0]}-${MONTH_TO_WEEKS[currentMonthIndex].weeks[MONTH_TO_WEEKS[currentMonthIndex].weeks.length-1]}周` : 
-              ' | 假期'}
-          </Text>
         </View>
         
         {/* 课表主体 */}
@@ -591,6 +626,13 @@ const Schedule = () => {
                     <Text style={styles.timeDisplayText}>
                       周{weekdays[selectedSlot.day - 1]} {' '}
                       {selectedSlot.slot.slot_name}
+                    </Text>
+                  </View>
+                  
+                  <Text style={styles.formLabel}>上课周次</Text>
+                  <View style={styles.timeDisplay}>
+                    <Text style={styles.timeDisplayText}>
+                      {months[currentMonthIndex]} 第{currentWeekIndex + 1}周 (第{getCurrentWeek()}教学周)
                     </Text>
                   </View>
                   
@@ -946,12 +988,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: 'bold',
     fontSize: hp(2),
-  },
-  semesterInfo: {
-    fontSize: hp(1.8),
-    color: '#777',
-    marginTop: 5,
-    textAlign: 'center',
   },
 })
 

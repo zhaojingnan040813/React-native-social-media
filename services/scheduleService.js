@@ -304,4 +304,66 @@ export const getUserCoursesByMonth = async (userId, semester, weeks, year) => {
     console.error('按月份获取课表失败:', error.message);
     throw error;
   }
+};
+
+/**
+ * 按周次获取用户课程数据
+ * @param {string} userId - 用户ID
+ * @param {string} semester - 学期（春季/秋季）
+ * @param {number} week - 周次
+ * @param {number} year - 年份
+ * @returns {Promise<Object>} - 课表数据
+ */
+export const getUserCoursesByWeek = async (userId, semester, week, year) => {
+  try {
+    // 获取所有课程
+    const { data: allCourses, error: coursesError } = await supabase
+      .from('courses')
+      .select('*')
+      .eq('user_id', userId);
+
+    if (coursesError) throw coursesError;
+
+    // 如果周次无效
+    if (!week) {
+      return {
+        courses: allCourses,
+        courseItems: []
+      };
+    }
+
+    // 获取所有课程安排
+    const { data: allItems, error: allItemsError } = await supabase
+      .from('course_items')
+      .select('*')
+      .eq('user_id', userId);
+
+    if (allItemsError) throw allItemsError;
+
+    // 手动筛选符合当前周次的课程
+    const filteredItems = allItems.filter(item => {
+      // 检查周次范围是否包含当前周次
+      const itemStartWeek = item.week_start || 1;
+      const itemEndWeek = item.week_end || 20;
+      
+      return week >= itemStartWeek && week <= itemEndWeek;
+    });
+
+    // 手动关联课程信息
+    const enhancedItems = filteredItems.map(item => {
+      const relatedCourse = allCourses.find(course => course.course_id === item.course_id) || {};
+      return {
+        ...item,
+        courses: relatedCourse
+      };
+    });
+
+    return {
+      courses: allCourses,
+      courseItems: enhancedItems
+    };
+  } catch (error) {
+    console.error('按周次获取课表失败:', error.message);
+    throw error;
+  }
 }; 
