@@ -214,7 +214,7 @@ const EditProfile = () => {
                     {/* 性别选择 */}
                     <TouchableOpacity 
                       style={styles.selectInput}
-                      onPress={() => setShowGenderSelection(!showGenderSelection)}
+                      onPress={() => setShowGenderSelection(true)}
                     >
                       <View style={{flexDirection: 'row', alignItems: 'center', gap: 12}}>
                         <Icon name="gender" size={26} />
@@ -225,31 +225,63 @@ const EditProfile = () => {
                       <Icon name="down" size={16} color={theme.colors.textLight} />
                     </TouchableOpacity>
                     
-                    {/* 性别选择下拉 */}
-                    {showGenderSelection && (
-                      <View style={styles.dropdown}>
-                        <TouchableOpacity 
-                          style={styles.dropdownItem}
-                          onPress={() => {
-                            setUser({...user, gender: '男'});
-                            setShowGenderSelection(false);
-                          }}
-                        >
-                          <FontAwesome5 name="mars" size={16} color="#6495ED" />
-                          <Text style={styles.dropdownText}>男</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity 
-                          style={styles.dropdownItem}
-                          onPress={() => {
-                            setUser({...user, gender: '女'});
-                            setShowGenderSelection(false);
-                          }}
-                        >
-                          <FontAwesome5 name="venus" size={16} color="#FFB6C1" />
-                          <Text style={styles.dropdownText}>女</Text>
-                        </TouchableOpacity>
+                    {/* 性别选择弹窗 */}
+                    <Modal
+                      animationType="slide"
+                      transparent={true}
+                      visible={showGenderSelection}
+                      onRequestClose={() => setShowGenderSelection(false)}
+                    >
+                      <View style={styles.modalOverlay}>
+                        <View style={styles.modalContainer}>
+                          <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>选择性别</Text>
+                            <TouchableOpacity onPress={() => setShowGenderSelection(false)}>
+                              <FontAwesome5 name="times" size={20} color={theme.colors.text} />
+                            </TouchableOpacity>
+                          </View>
+                          
+                          <View style={styles.modalContent}>
+                            <TouchableOpacity 
+                              style={styles.modalItem}
+                              onPress={() => {
+                                setUser({...user, gender: '男'});
+                                setShowGenderSelection(false);
+                              }}
+                            >
+                              <View style={styles.genderOption}>
+                                <FontAwesome5 name="mars" size={20} color="#6495ED" />
+                                <Text style={[
+                                  styles.modalItemText, 
+                                  user.gender === '男' && styles.selectedText
+                                ]}>男</Text>
+                              </View>
+                              {user.gender === '男' && (
+                                <FontAwesome5 name="check" size={16} color={theme.colors.primary} />
+                              )}
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                              style={styles.modalItem}
+                              onPress={() => {
+                                setUser({...user, gender: '女'});
+                                setShowGenderSelection(false);
+                              }}
+                            >
+                              <View style={styles.genderOption}>
+                                <FontAwesome5 name="venus" size={20} color="#FFB6C1" />
+                                <Text style={[
+                                  styles.modalItemText, 
+                                  user.gender === '女' && styles.selectedText
+                                ]}>女</Text>
+                              </View>
+                              {user.gender === '女' && (
+                                <FontAwesome5 name="check" size={16} color={theme.colors.primary} />
+                              )}
+                            </TouchableOpacity>
+                          </View>
+                        </View>
                       </View>
-                    )}
+                    </Modal>
                     
                     {/* 生日选择 */}
                     <TouchableOpacity 
@@ -353,7 +385,7 @@ const EditProfile = () => {
                     {/* 年级选择 */}
                     <TouchableOpacity 
                       style={styles.selectInput}
-                      onPress={() => setShowGradeSelection(!showGradeSelection)}
+                      onPress={() => setShowGradeSelection(true)}
                     >
                       <View style={{flexDirection: 'row', alignItems: 'center', gap: 12}}>
                         <Icon name="graduate" size={26} />
@@ -364,25 +396,47 @@ const EditProfile = () => {
                       <Icon name="down" size={16} color={theme.colors.textLight} />
                     </TouchableOpacity>
                     
-                    {/* 年级选择下拉 */}
-                    {showGradeSelection && (
-                      <View style={styles.dropdown}>
-                        <ScrollView style={{maxHeight: 200}}>
-                          {GRADES.map((grade, index) => (
-                            <TouchableOpacity 
-                              key={index}
-                              style={styles.dropdownItem}
-                              onPress={() => {
-                                setUser({...user, grade});
-                                setShowGradeSelection(false);
-                              }}
-                            >
-                              <Text style={styles.dropdownText}>{grade}</Text>
+                    {/* 年级选择弹窗 */}
+                    <Modal
+                      animationType="slide"
+                      transparent={true}
+                      visible={showGradeSelection}
+                      onRequestClose={() => setShowGradeSelection(false)}
+                    >
+                      <View style={styles.modalOverlay}>
+                        <View style={styles.modalContainer}>
+                          <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>选择年级</Text>
+                            <TouchableOpacity onPress={() => setShowGradeSelection(false)}>
+                              <FontAwesome5 name="times" size={20} color={theme.colors.text} />
                             </TouchableOpacity>
-                          ))}
-                        </ScrollView>
+                          </View>
+                          
+                          <ScrollView style={styles.modalContent}>
+                            {GRADES.map((grade, index) => (
+                              <TouchableOpacity 
+                                key={index}
+                                style={styles.modalItem}
+                                onPress={() => {
+                                  setUser({...user, grade});
+                                  setShowGradeSelection(false);
+                                }}
+                              >
+                                <Text style={[
+                                  styles.modalItemText, 
+                                  user.grade === grade && styles.selectedText
+                                ]}>
+                                  {grade}
+                                </Text>
+                                {user.grade === grade && (
+                                  <FontAwesome5 name="check" size={16} color={theme.colors.primary} />
+                                )}
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+                        </View>
                       </View>
-                    )}
+                    </Modal>
                     
                     {/* 电话 */}
                     <Input
@@ -590,6 +644,11 @@ const styles = StyleSheet.create({
     fontSize: hp(2.7),
     fontWeight: '600',
     color: theme.colors.textDark
+  },
+  genderOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 15,
   },
 })
 
