@@ -14,12 +14,27 @@ const adminSupabase = createClient(supabaseUrl, SUPABASE_SERVICE_KEY, {
   }
 });
 
-// 根据用户 ID 查询用户信息
+// 根据用户 ID 查询用户信息（现在包括新增的个人信息字段）
 export const getUserData = async (userId)=>{
     try{
         const { data, error } = await supabase
         .from('users')
-        .select()
+        .select(`
+            id,
+            created_at,
+            name,
+            image,
+            bio,
+            StudentIdNumber,
+            address,
+            phoneNumber,
+            password,
+            gender,
+            birthday,
+            college,
+            major,
+            grade
+        `)
         .eq('id', userId)
         .single();
 

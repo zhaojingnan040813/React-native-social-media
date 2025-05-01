@@ -54,3 +54,16 @@ INSERT INTO time_slots (slot_name, start_time, end_time, display_order) VALUES
 ('9-10节', '17:10:00', '19:50:00', 5),
 ('11-12节', '19:10:00', '21:00:00', 6);
 
+
+ALTER TABLE posts ADD COLUMN tags JSONB DEFAULT '[]'::jsonb;
+
+
+-- 为users表添加性别、生日、学院、专业、年级字段
+ALTER TABLE users
+    ADD COLUMN gender VARCHAR(10),           -- 性别（如'男'，'女'，'其他'）
+    ADD COLUMN birthday DATE,                -- 生日
+    ADD COLUMN college TEXT,                 -- 学院
+    ADD COLUMN major TEXT,                   -- 专业
+    ADD COLUMN grade VARCHAR(20);            -- 年级（如'大一'，'大二'等）
+
+-- 注意：学号字段(StudentIdNumber)已经存在，无需添加

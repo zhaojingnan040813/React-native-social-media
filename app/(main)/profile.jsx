@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { hp, wp } from '../../helpers/common'
 import { useAuth } from '../../contexts/AuthContext'
 import { theme } from '../../constants/theme'
-import { Feather, Ionicons, SimpleLineIcons } from '@expo/vector-icons'
+import { Feather, Ionicons, SimpleLineIcons, FontAwesome5 } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { getUserImageSrc } from '../../services/imageService'
 import { Image } from 'expo-image';
@@ -14,6 +14,7 @@ import Avatar from '../../components/Avatar'
 import { fetchPosts } from '../../services/postService'
 import PostCard from '../../components/PostCard'
 import Loading from '../../components/Loading'
+import moment from 'moment'
 
 const Profile = () => {
   const {user, logout} = useAuth();
@@ -128,6 +129,12 @@ const Profile = () => {
 }
 
 const UserHeader = ({user, handleLogout, router})=>{
+  // 格式化生日显示
+  const formatBirthday = (dateString) => {
+    if (!dateString) return '';
+    return moment(dateString).format('YYYY-MM-DD');
+  };
+
   return (
     <View style={{flex: 1, backgroundColor:'white'}}> 
         <View>
@@ -146,7 +153,21 @@ const UserHeader = ({user, handleLogout, router})=>{
                 size={hp(12)}
                 rounded={theme.radius.xxl*1.4}
               />
-              {/* <Image source={getUserImageSrc(user?.image)} style={styles.avatar} /> */}
+              
+              {/* 性别图标 */}
+              {user?.gender && (
+                <View style={[
+                  styles.genderIcon, 
+                  {backgroundColor: user.gender === '男' ? 'rgba(100, 149, 237, 0.9)' : 'rgba(255, 182, 193, 0.9)'}
+                ]}>
+                  <FontAwesome5 
+                    name={user.gender === '男' ? 'mars' : 'venus'} 
+                    size={16} 
+                    color="white" 
+                  />
+                </View>
+              )}
+              
               <Pressable style={styles.editIcon} onPress={()=> router.push('/editProfile')}>
                 <Icon name="edit" strokeWidth={2.5} size={20} />
               </Pressable>
@@ -158,10 +179,40 @@ const UserHeader = ({user, handleLogout, router})=>{
               <Text style={styles.userName}> { user && user.name } </Text>
               <Text style={styles.infoText}> {user && user.address} </Text>
             </View>
+            
+            {/* 学院和专业信息 */}
+            {(user?.college || user?.major) && (
+              <View style={styles.educationInfo}>
+                <Icon name="school" size={20} color={theme.colors.textLight} />
+                <Text style={[styles.infoText, {fontSize: hp(1.8)}]}>
+                  {user?.college}{user?.major ? ` · ${user.major}` : ''}
+                  {user?.grade ? ` · ${user.grade}` : ''}
+                </Text>
+              </View>
+            )}
+            
+            {/* 学号信息 */}
+            {user?.StudentIdNumber && (
+              <View style={styles.info}>
+                <Icon name="idCard" size={20} color={theme.colors.textLight} />
+                <Text style={[styles.infoText, {fontSize: hp(1.8)}]}>
+                  {user.StudentIdNumber}
+                </Text>
+              </View>
+            )}
+            
+            {/* 生日信息 */}
+            {user?.birthday && (
+              <View style={styles.info}>
+                <Icon name="calendar" size={20} color={theme.colors.textLight} />
+                <Text style={[styles.infoText, {fontSize: hp(1.8)}]}>
+                  {formatBirthday(user.birthday)}
+                </Text>
+              </View>
+            )}
 
             {/* email, phone */}
             <View style={{gap: 10}}>
-              
               <View style={styles.info}>
                 <Icon name="mail" size={20} color={theme.colors.textLight} />
                 <Text style={[styles.infoText, {fontSize: hp(1.8)}]}> 
@@ -183,7 +234,10 @@ const UserHeader = ({user, handleLogout, router})=>{
               
               {
                 user && user.bio && (
-                  <Text style={[styles.infoText]}>{user.bio}</Text>
+                  <View style={styles.bioContainer}>
+                    <Icon name="info" size={20} color={theme.colors.textLight} />
+                    <Text style={[styles.infoText, {fontSize: hp(1.8)}]}>{user.bio}</Text>
+                  </View>
                 )
               }
               
@@ -263,6 +317,33 @@ const styles = StyleSheet.create({
     fontSize: hp(2),
     textAlign: 'center',
     color: theme.colors.text
+  },
+  genderIcon: {
+    position: 'absolute',
+    bottom: 0,
+    left: -5,
+    padding: 6,
+    borderRadius: 50,
+    backgroundColor: 'rgba(100, 149, 237, 0.9)', // 默认蓝色(男)
+  },
+  educationInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(200, 200, 200, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  bioContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginTop: 5,
+    backgroundColor: 'rgba(200, 200, 200, 0.1)',
+    padding: 8,
+    borderRadius: 10,
   }
 })
 
