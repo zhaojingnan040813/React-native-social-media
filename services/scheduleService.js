@@ -239,4 +239,69 @@ export const getCoursesByDayAndSlot = async (userId, dayOfWeek, slotId) => {
     console.error('获取特定时间课程失败:', error.message);
     throw error;
   }
+};
+
+/**
+ * 按月份获取用户课程数据
+ * @param {string} userId - 用户ID
+ * @param {string} semester - 学期（春季/秋季）
+ * @param {Array<number>} weeks - 周次数组
+ * @param {number} year - 年份
+ * @returns {Promise<Object>} - 课表数据
+ */
+export const getUserCoursesByMonth = async (userId, semester, weeks, year) => {
+  try {
+    // 获取所有课程
+    const { data: allCourses, error: coursesError } = await supabase
+      .from('courses')
+      .select('*')
+      .eq('user_id', userId);
+
+    if (coursesError) throw coursesError;
+
+    // 如果是暑假或寒假等没有课程的月份
+    if (!weeks || weeks.length === 0) {
+      return {
+        courses: allCourses,
+        courseItems: []
+      };
+    }
+
+    // 获取所有课程安排
+    const { data: allItems, error: allItemsError } = await supabase
+      .from('course_items')
+      .select('*')
+      .eq('user_id', userId);
+
+    if (allItemsError) throw allItemsError;
+
+    // 手动筛选符合条件的课程
+    const filteredItems = allItems.filter(item => {
+      // 检查周次范围是否与指定周次有交集
+      const itemStartWeek = item.week_start || 1;
+      const itemEndWeek = item.week_end || 20;
+      
+      // 判断是否有交集
+      return weeks.some(week => 
+        week >= itemStartWeek && week <= itemEndWeek
+      );
+    });
+
+    // 手动关联课程信息
+    const enhancedItems = filteredItems.map(item => {
+      const relatedCourse = allCourses.find(course => course.course_id === item.course_id) || {};
+      return {
+        ...item,
+        courses: relatedCourse
+      };
+    });
+
+    return {
+      courses: allCourses,
+      courseItems: enhancedItems
+    };
+  } catch (error) {
+    console.error('按月份获取课表失败:', error.message);
+    throw error;
+  }
 }; 
