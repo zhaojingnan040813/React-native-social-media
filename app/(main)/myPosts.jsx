@@ -78,7 +78,7 @@ const MyPosts = () => {
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton} 
-          onPress={() => router.back()}
+          onPress={() => router.push('/profile')}
         >
           <Icon name="arrowLeft" strokeWidth={2.5} size={24} color={theme.colors.text} />
         </TouchableOpacity>
