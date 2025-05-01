@@ -19,6 +19,12 @@ export const createOrUpdatePost = async (post)=>{
             }
         }
         
+        // 确保tags是JSON格式
+        if (post.tags && Array.isArray(post.tags)) {
+            // 如果tags是数组，将其限制为最多6个标签
+            post.tags = post.tags.slice(0, 6);
+        }
+        
         const { data, error } = await supabase
         .from('posts')
         .upsert(post)
@@ -38,19 +44,26 @@ export const createOrUpdatePost = async (post)=>{
 }
 
 //查询帖子列表，可能带有分页和用户过滤 (select，带有 .limit(), .eq() 等修饰符)。
-export const fetchPosts = async (limit=10, userId=null)=>{
+export const fetchPosts = async (limit=10, userId=null, tagFilter=null)=>{
     try{
         // 1. 首先获取帖子数据
         let postsQuery = supabase
             .from('posts')
             .select('*')
-            .order('created_at', {ascending: false })
-            .limit(limit);
+            .order('created_at', {ascending: false });
         
         // 如果提供了用户ID，则筛选特定用户的帖子
         if(userId){
             postsQuery = postsQuery.eq('"userId"', userId);
         }
+        
+        // 如果提供了标签过滤，则筛选包含该标签的帖子
+        if(tagFilter){
+            postsQuery = postsQuery.contains('tags', [tagFilter]);
+        }
+        
+        // 应用分页限制
+        postsQuery = postsQuery.limit(limit);
         
         const { data: posts, error: postsError } = await postsQuery;
         
@@ -131,11 +144,26 @@ export const fetchPosts = async (limit=10, userId=null)=>{
             const commentData = commentsCount.find(c => c.postId === post.id);
             const comments = commentData ? { count: parseInt(commentData.count) } : { count: 0 };
             
+            // 处理标签数据，确保它是数组
+            let tags = [];
+            if (post.tags) {
+                if (typeof post.tags === 'string') {
+                    try {
+                        tags = JSON.parse(post.tags);
+                    } catch (e) {
+                        console.log('Error parsing tags:', e);
+                    }
+                } else if (Array.isArray(post.tags)) {
+                    tags = post.tags;
+                }
+            }
+            
             return {
                 ...post,
                 user,
                 postLikes,
-                comments
+                comments,
+                tags
             };
         });
         
@@ -350,5 +378,21 @@ export const removePost = async (postId)=>{
     }catch(error){
         console.log('removePost error: ', error);
         return {success: false, msg: "Could not remove the post"};
+    }
+}
+
+// 根据标签搜索帖子
+export const searchPostsByTag = async (tag, limit=10) => {
+    try {
+        // 确保传入的标签非空
+        if (!tag || tag.trim() === '') {
+            return { success: false, msg: "Tag cannot be empty" };
+        }
+        
+        // 使用contains搜索包含特定标签的帖子
+        return await fetchPosts(limit, null, tag.trim());
+    } catch (error) {
+        console.log('searchPostsByTag error:', error);
+        return { success: false, msg: "Could not search posts by tag" };
     }
 }

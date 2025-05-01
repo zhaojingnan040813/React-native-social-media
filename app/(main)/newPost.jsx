@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, Image as RNImage, Alert, TouchableOpacity } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable, Image as RNImage, Alert, TouchableOpacity, TextInput } from 'react-native'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import ScreenWrapper from '../../components/ScreenWrapper'
 import { hp, wp } from '../../helpers/common'
@@ -27,16 +27,49 @@ const NewPost = () => {
   const [loading, setLoading] = useState(false);
   const editorRef = useRef(null);
   const router = useRouter();
-
+  
+  // 添加标签相关状态
+  const [tagInput, setTagInput] = useState('');
+  const [tags, setTags] = useState([]);
+  
   useEffect(()=>{
     if(post && post.id){
       bodyRef.current = post.body;
       setFile(post.file || null);
+      // 如果是编辑帖子，加载已有标签
+      if(post.tags) {
+        try {
+          const parsedTags = typeof post.tags === 'string' ? JSON.parse(post.tags) : post.tags;
+          setTags(Array.isArray(parsedTags) ? parsedTags : []);
+        } catch(e) {
+          console.error('解析标签失败:', e);
+          setTags([]);
+        }
+      }
       setTimeout(() => {
         editorRef?.current?.setContentHTML(post.body);
       }, (300));
     }
   },[])
+  
+  // 处理添加标签
+  const handleAddTag = () => {
+    if (!tagInput.trim()) return;
+    
+    // 将输入内容按空格或逗号分割成多个标签
+    const newTags = tagInput.trim().split(/[\s,]+/).filter(tag => tag !== '');
+    
+    // 合并现有标签和新标签，去重，并限制最多6个
+    const updatedTags = [...new Set([...tags, ...newTags])].slice(0, 6);
+    
+    setTags(updatedTags);
+    setTagInput(''); // 清空输入框
+  };
+  
+  // 移除标签
+  const removeTag = (indexToRemove) => {
+    setTags(tags.filter((_, index) => index !== indexToRemove));
+  };
 
   const onPick = async (isImage) => {
     // No permissions request is necessary for launching the image library
@@ -64,7 +97,6 @@ const NewPost = () => {
   };
 
   const onSubmit = async ()=>{
-
     // validate data
     if(!bodyRef.current && !file){
       Alert.alert('提示', "请选择图片或添加帖子内容!");
@@ -76,6 +108,7 @@ const NewPost = () => {
       file,
       body: bodyRef.current,
       userId: user?.id,
+      tags: tags // 添加标签数据
     }
     if(post && post.id) data.id = post.id;
 
@@ -84,12 +117,12 @@ const NewPost = () => {
     if(res.success){
       setFile(null);
       bodyRef.current = '';
+      setTags([]);
       editorRef.current?.setContentHTML('');
       router.back();
     }else{
       Alert.alert('帖子', res.msg);
     }
-
   }
 
   const isLocalFile = file=>{
@@ -203,7 +236,44 @@ const NewPost = () => {
               </TouchableOpacity>
             </View>
             
-          </View> 
+          </View>
+          
+          {/* 添加标签输入区域 */}
+          <View style={styles.tagsContainer}>
+            <Text style={styles.tagsLabel}>添加标签</Text>
+            <View style={styles.tagInputContainer}>
+              <TextInput
+                style={styles.tagInput}
+                placeholder="输入标签，用空格分隔 (最多6个)"
+                value={tagInput}
+                onChangeText={setTagInput}
+                onSubmitEditing={handleAddTag}
+                returnKeyType="done"
+                blurOnSubmit={false}
+              />
+              <TouchableOpacity 
+                style={styles.addTagButton}
+                onPress={handleAddTag}
+              >
+                <AntDesign name="plus" size={20} color="white" />
+              </TouchableOpacity>
+            </View>
+            
+            {tags.length > 0 && (
+              <View style={styles.tagsList}>
+                {tags.map((tag, index) => (
+                  <TouchableOpacity 
+                    key={index} 
+                    style={styles.tagChip}
+                    onPress={() => removeTag(index)}
+                  >
+                    <Text style={styles.tagText}>#{tag}</Text>
+                    <AntDesign name="close" size={16} color="#666" />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
         </ScrollView>
         <Button 
           buttonStyle={{height: hp(6.2)}} 
@@ -311,8 +381,57 @@ const styles = StyleSheet.create({
     // shadowOffset: {width: 0, height: 3},
     // shadowOpacity: 0.6,
     // shadowRadius: 8
-  }
-
+  },
+  
+  // 添加标签样式
+  tagsContainer: {
+    marginVertical: 5,
+  },
+  tagsLabel: {
+    fontSize: hp(1.9),
+    fontWeight: theme.fonts.semibold,
+    color: theme.colors.text,
+    marginBottom: 8,
+  },
+  tagInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderRadius: theme.radius.xl,
+    borderCurve: 'continuous',
+    borderColor: theme.colors.gray,
+    overflow: 'hidden',
+  },
+  tagInput: {
+    flex: 1,
+    padding: 12,
+    fontSize: hp(1.8),
+  },
+  addTagButton: {
+    backgroundColor: theme.colors.primary,
+    padding: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tagsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 10,
+    gap: 8,
+  },
+  tagChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(108, 142, 239, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 5,
+  },
+  tagText: {
+    fontSize: hp(1.7),
+    color: theme.colors.primary,
+  },
 })
 
 export default NewPost

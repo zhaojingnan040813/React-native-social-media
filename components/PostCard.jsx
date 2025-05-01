@@ -8,7 +8,7 @@ import moment from 'moment';
 import { WebView } from 'react-native-webview';
 import Icon from '../assets/icons';
 import { Video } from 'expo-av';
-import { createPostLike, removePostLike } from '../services/postService';
+import { createPostLike, removePostLike, searchPostsByTag } from '../services/postService';
 import { Share } from 'react-native';
 import Loading from './Loading';
 import Avatar from './Avatar';
@@ -67,7 +67,8 @@ const PostCard = ({
   hasShadow=true,
   showDelete=false,
   onDelete=()=>{},
-  onEdit=()=>{}
+  onEdit=()=>{},
+  onTagPress
 }) => {
   const [likes, setLikes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -149,6 +150,15 @@ const PostCard = ({
     // console.log(`正在打开帖子：${item?.id}，时间戳：${timestamp}`);
     router.replace(`/postDetails?postId=${item?.id}&t=${timestamp}`);
   }
+
+  const handleTagPress = (tag) => {
+    if (onTagPress) {
+      onTagPress(tag);
+    } else {
+      console.log('Tag pressed:', tag);
+    }
+  };
+
   return (
     <View style={[styles.container, hasShadow && shadowStyles]}>
       <View style={styles.header}>
@@ -214,6 +224,20 @@ const PostCard = ({
             )
           }
         </View>
+        
+        {item?.tags && item.tags.length > 0 && (
+          <View style={styles.tagsContainer}>
+            {Array.isArray(item.tags) && item.tags.map((tag, index) => (
+              <TouchableOpacity 
+                key={index} 
+                style={styles.tagChip}
+                onPress={() => handleTagPress(tag)}
+              >
+                <Text style={styles.tagText}>#{tag}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
         
         {/* post image */}
         {
@@ -342,7 +366,23 @@ const styles = StyleSheet.create({
   count: {
     color: theme.colors.text,
     fontSize: hp(1.8)
-  }
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginVertical: 5,
+    gap: 8,
+  },
+  tagChip: {
+    backgroundColor: 'rgba(108, 142, 239, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 15,
+  },
+  tagText: {
+    fontSize: hp(1.6),
+    color: theme.colors.primary,
+  },
 })
 
 export default PostCard
