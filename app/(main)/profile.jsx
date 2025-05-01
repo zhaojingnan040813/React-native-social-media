@@ -52,6 +52,8 @@ const Profile = () => {
   const handleFeatureClick = (feature) => {
     if (feature === '我的帖子') {
       router.push('/myPosts');
+    } else if (feature === '消息通知') {
+      router.push('/notifications');
     } else {
       Alert.alert('提示', '该功能正在开发中，敬请期待！');
     }

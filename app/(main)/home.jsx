@@ -26,17 +26,8 @@ const HomeScreen = () => {
     const [hasMore, setHasMore] = useState(true);
     const [isLoading, setIsLoading] = useState(false); // 添加加载状态
     const [refreshing, setRefreshing] = useState(false); // 下拉刷新状态
-    const [notificationCount, setNotificationCount] = useState(0);
     const [limit, setLimit] = useState(initialLimit);
     const [activeTag, setActiveTag] = useState(null); // 当前激活的标签过滤
-
-    // const onLogout = async () => {
-    //     setAuth(null);
-    //     const {error} = await supabase.auth.signOut();
-    //     if (error) {
-    //       Alert.alert("Error Signing Out User", error.message);
-    //     }
-    // }
 
     const handlePostEvent = async (payload)=>{
       // console.log('got post event: ', payload);
@@ -70,31 +61,11 @@ const HomeScreen = () => {
       }
     }
 
-    const handleNewNotification = payload=>{
-      // console.log('got new notification : ', payload);
-      if(payload.eventType=='INSERT' && payload?.new?.id){
-        setNotificationCount(prev=> prev+1);
-      }
-    }
-
     useEffect(()=>{
-      
-      // // if you want to listen to single event on a table
-      // let postsChannel = supabase
-      // .channel('posts')
-      // .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, handlePostEvent)
-      // .subscribe();
-
-
       // listen all events on a table
       let postChannel = supabase
       .channel('posts')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, handlePostEvent)
-      .subscribe();
-
-      let notificationChannel = supabase
-      .channel('notifications')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `receiverId=eq.${user.id}`, }, handleNewNotification)
       .subscribe();
 
       // 首次加载帖子
@@ -102,7 +73,6 @@ const HomeScreen = () => {
 
       return ()=>{
         supabase.removeChannel(postChannel);
-        supabase.removeChannel(notificationChannel);
       }
 
     },[]);
@@ -215,24 +185,7 @@ const HomeScreen = () => {
       <View style={styles.container}>
         {/* header */}
         <View style={styles.header}>
-          <Pressable>
-            <Text style={styles.title}>帖子</Text>
-          </Pressable>
-          <View style={styles.icons}>
-            <Pressable onPress={()=> {
-              setNotificationCount(0);
-              router.push('notifications');
-            }}>
-              <Icon name="heart" size={hp(3.2)} strokeWidth={2} color={theme.colors.text}  />
-              {
-                notificationCount>0 && (
-                  <View style={styles.pill}>
-                    <Text style={styles.pillText}>{notificationCount}</Text>
-                  </View>
-                )
-              }
-            </Pressable>
-          </View>
+          <Text style={styles.title}>帖子</Text>
         </View>
         
         {/* 当前活跃标签显示 */}
@@ -305,13 +258,8 @@ const HomeScreen = () => {
             )
           }
         />
-
-        {/* <Button onPress={onLogout} title="Logout" /> */}
       </View>
-      
-      
-
-</ScreenWrapper>
+    </ScreenWrapper>
   )
 }
 
@@ -323,7 +271,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     marginBottom: 10,
     marginHorizontal: wp(4)
   },
@@ -340,12 +288,6 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.gray,
     borderWidth: 3
   },
-  icons: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 18
-  },
   listStyle: {
     paddingTop: 20,
     paddingHorizontal: wp(4)
@@ -354,22 +296,6 @@ const styles = StyleSheet.create({
     fontSize: hp(2),
     textAlign: 'center',
     color: theme.colors.text
-  },
-  pill: {
-    position: 'absolute',
-    right: -10,
-    top: -4,
-    height: hp(2.2),
-    width: hp(2.2),
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 20,
-    backgroundColor: theme.colors.roseLight
-  },
-  pillText: {
-    color: 'white',
-    fontSize: hp(1.2),
-    fontWeight: theme.fonts.bold
   },
   // 活跃标签样式
   activeTagContainer: {
