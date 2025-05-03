@@ -7,7 +7,7 @@ import { hp, stripHtmlTags, wp } from '../helpers/common';
 import moment from 'moment';
 import { WebView } from 'react-native-webview';
 import Icon from '../assets/icons';
-import { Video } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { createPostLike, removePostLike, searchPostsByTag } from '../services/postService';
 import { Share } from 'react-native';
 import Loading from './Loading';
@@ -319,13 +319,23 @@ const PostCard = ({
         {/* post video */}
         {
           item?.file && item?.file?.includes('postVideos') && (
-            <Video
-              style={[styles.postMedia, {height: hp(30)}]}
-              source={getSupabaseFileUrl(item?.file)}
-              useNativeControls
-              resizeMode="cover"
-              isLooping
-            />
+            <>
+              {(() => {
+                const videoSource = getSupabaseFileUrl(item?.file);
+                const player = useVideoPlayer(videoSource, player => {
+                  player.loop = true;
+                });
+                
+                return (
+                  <VideoView
+                    style={[styles.postMedia, {height: hp(30)}]}
+                    player={player}
+                    allowsFullscreen
+                    nativeControls
+                  />
+                );
+              })()}
+            </>
           )
         }
       </TouchableOpacity>

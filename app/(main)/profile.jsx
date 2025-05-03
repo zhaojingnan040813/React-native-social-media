@@ -79,9 +79,6 @@ const Profile = () => {
         <View style={{flex: 1, backgroundColor:'white', paddingHorizontal: wp(4)}}> 
           <View>
             <Text style={styles.profileTitle}>个人资料</Text>
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-              <Icon name="logout" size={26} color={theme.colors.rose} />
-            </TouchableOpacity>
           </View>
           
           <View style={styles.container}>

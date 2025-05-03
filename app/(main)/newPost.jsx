@@ -10,7 +10,7 @@ import RichTextEditor from '../../components/RichTextEditor'
 import Button from '../../components/Button'
 import { AntDesign, FontAwesome, FontAwesome6, Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker';
-import { Video } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { createOrUpdatePost } from '../../services/postService'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import Avatar from '../../components/Avatar'
@@ -204,15 +204,21 @@ const NewPost = () => {
 
                 {
                   getFileType(file)=='video'? (
-                    <Video
-                      style={{flex: 1}}
-                      source={{
-                        uri: getFileUri(file)
-                      }}
-                      useNativeControls
-                      resizeMode="cover"
-                      isLooping
-                    />
+                    (() => {
+                      const videoSource = { uri: getFileUri(file) };
+                      const player = useVideoPlayer(videoSource, player => {
+                        player.loop = true;
+                      });
+                      
+                      return (
+                        <VideoView
+                          style={{flex: 1}}
+                          player={player}
+                          allowsFullscreen
+                          nativeControls
+                        />
+                      );
+                    })()
                   ):(
                     <Image source={{uri: getFileUri(file)}} resizeMode='cover' style={{flex: 1}} />
                   )
