@@ -1,7 +1,7 @@
 import { View, Text, Button, Alert, StyleSheet, Pressable, ScrollView, FlatList, RefreshControl } from 'react-native'
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
 import ScreenWrapper from '../../components/ScreenWrapper'
-import { supabase } from '../../lib/supabase'
+import { supabase, channelManager } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import {Svg, Circle, Path} from 'react-native-svg';
 import { theme } from '../../constants/theme'
@@ -15,67 +15,142 @@ import PostCard from '../../components/PostCard'
 import Loading from '../../components/Loading'
 import { getUserData } from '../../services/userService'
 import Avatar from '../../components/Avatar'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 // 初始加载的帖子数量
 const initialLimit = 10;
+// 数据缓存键
+const POSTS_CACHE_KEY = 'home_posts_cache';
+// 设置节流延迟时间(毫秒)
+const THROTTLE_DELAY = 2000;
 
 const HomeScreen = () => {
     const {user, setAuth} = useAuth();
     const router = useRouter();
     const [posts, setPosts] = useState([]);
     const [hasMore, setHasMore] = useState(true);
-    const [isLoading, setIsLoading] = useState(false); // 添加加载状态
-    const [refreshing, setRefreshing] = useState(false); // 下拉刷新状态
+    const [isLoading, setIsLoading] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
     const [limit, setLimit] = useState(initialLimit);
-    const [activeTag, setActiveTag] = useState(null); // 当前激活的标签过滤
+    const [activeTag, setActiveTag] = useState(null);
+    
+    // 添加节流控制
+    const throttleTimerRef = useRef(null);
+    const isLoadingRef = useRef(false);
+    
+    // 使用ref跟踪组件是否已卸载
+    const isMountedRef = useRef(true);
 
-    const handlePostEvent = async (payload)=>{
+    const handlePostEvent = async (payload) => {
+      // 如果组件已卸载，不处理事件
+      if (!isMountedRef.current) return;
+      
       // console.log('got post event: ', payload);
-      if(payload.eventType == 'INSERT' && payload?.new?.id){
+      if (payload.eventType == 'INSERT' && payload?.new?.id) {
         let newPost = {...payload.new};
         let res = await getUserData(newPost.userId);
-        newPost.user = res.success? res.data: {};
+        newPost.user = res.success ? res.data : {};
         newPost.postLikes = []; // while adding likes
         newPost.comments = [{count: 0}] // while adding comments
-        setPosts(prevPosts=> [newPost, ...prevPosts]);
+        setPosts(prevPosts => [newPost, ...prevPosts]);
       }
 
-      if(payload.eventType == 'DELETE' && payload?.old?.id){
-        setPosts(prevPosts=> {
-          let updatedPosts = prevPosts.filter(post=> post.id!=payload.old.id);
+      if (payload.eventType == 'DELETE' && payload?.old?.id) {
+        setPosts(prevPosts => {
+          let updatedPosts = prevPosts.filter(post => post.id!=payload.old.id);
           return updatedPosts;
-        })
+        });
       }
 
-      if(payload.eventType == 'UPDATE' && payload?.new?.id){
-        setPosts(prevPosts=> {
-          let updatedPosts = prevPosts.map(post=> {
-            if(post.id==payload.new.id){
+      if (payload.eventType == 'UPDATE' && payload?.new?.id) {
+        setPosts(prevPosts => {
+          let updatedPosts = prevPosts.map(post => {
+            if (post.id==payload.new.id) {
               post.body = payload.new.body;
               post.file = payload.new.file;
             }
             return post;
           });
           return updatedPosts;
-        })
+        });
       }
     }
 
-    useEffect(()=>{
-      // listen all events on a table
-      let postChannel = supabase
-      .channel('posts')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, handlePostEvent)
-      .subscribe();
-
-      // 首次加载帖子
-      getPosts();
-
-      return ()=>{
-        supabase.removeChannel(postChannel);
+    // 尝试从缓存加载帖子
+    const loadFromCache = async () => {
+      try {
+        const cachedData = await AsyncStorage.getItem(POSTS_CACHE_KEY);
+        if (cachedData) {
+          const { posts: cachedPosts, timestamp } = JSON.parse(cachedData);
+          // 如果缓存不超过5分钟，使用缓存数据
+          if (Date.now() - timestamp < 5 * 60 * 1000 && cachedPosts.length > 0) {
+            setPosts(cachedPosts);
+            return true;
+          }
+        }
+      } catch (error) {
+        console.error('Error loading from cache:', error);
       }
+      return false;
+    };
 
-    },[]);
+    // 保存数据到缓存
+    const saveToCache = async (postsData) => {
+      try {
+        const data = {
+          posts: postsData,
+          timestamp: Date.now()
+        };
+        await AsyncStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(data));
+      } catch (error) {
+        console.error('Error saving to cache:', error);
+      }
+    };
+
+    useEffect(() => {
+      isMountedRef.current = true;
+      
+      // 使用通道管理器获取或创建通道
+      const channel = channelManager.getOrCreateChannel('posts', null);
+      
+      // 只有在没有订阅的情况下才添加事件处理程序
+      channel
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, handlePostEvent)
+        .subscribe();
+
+      // 尝试从缓存加载，如果缓存不存在或过期，则获取新数据
+      loadFromCache().then(cacheHit => {
+        if (!cacheHit) {
+          getPosts();
+        }
+      });
+
+      return () => {
+        // 标记组件已卸载
+        isMountedRef.current = false;
+        
+        // 移除通道订阅
+        channelManager.removeChannelSubscriber('posts');
+        
+        // 清除节流定时器
+        if (throttleTimerRef.current) {
+          clearTimeout(throttleTimerRef.current);
+        }
+      }
+    }, []);
+    
+    // 节流函数
+    const throttle = (func) => {
+      if (isLoadingRef.current || throttleTimerRef.current) return;
+      
+      isLoadingRef.current = true;
+      func();
+      
+      throttleTimerRef.current = setTimeout(() => {
+        throttleTimerRef.current = null;
+        isLoadingRef.current = false;
+      }, THROTTLE_DELAY);
+    };
     
     // 处理标签点击
     const handleTagPress = async (tag) => {
@@ -125,6 +200,10 @@ const HomeScreen = () => {
         
         if (res.success) {
           setPosts(res.data);
+          // 保存到缓存
+          if (!activeTag) {
+            saveToCache(res.data);
+          }
           // 如果返回的数据少于请求的数量，说明没有更多数据了
           if (res.data.length < initialLimit) {
             setHasMore(false);
@@ -138,10 +217,10 @@ const HomeScreen = () => {
       }
     }, [activeTag]);
     
-    // 更新获取帖子函数，考虑标签过滤
+    // 更新获取帖子函数，考虑标签过滤和节流控制
     const getPosts = async () => {
       // 如果已经没有更多数据或者正在加载中，直接返回
-      if(!hasMore || isLoading) return;
+      if (!hasMore || isLoading) return;
 
       setIsLoading(true);
       
@@ -154,14 +233,18 @@ const HomeScreen = () => {
           res = await fetchPosts(limit);
         }
         
-        if(res.success){
+        if (res.success) {
           // 如果获取的数据数量与当前显示的一样，说明没有更多数据了
-          if(posts.length > 0 && posts.length === res.data.length) {
+          if (posts.length > 0 && posts.length === res.data.length) {
             setHasMore(false);
           } else {
             setPosts(res.data);
+            // 保存到缓存（只保存非标签筛选的数据）
+            if (!activeTag) {
+              saveToCache(res.data);
+            }
             // 如果返回的数据少于请求的数量，也说明没有更多数据了
-            if(res.data.length < limit) {
+            if (res.data.length < limit) {
               setHasMore(false);
             } else {
               // 否则增加下次加载的数量，使用 setState 更新 limit
@@ -179,6 +262,13 @@ const HomeScreen = () => {
         setIsLoading(false);
       }
     }
+
+    // 节流加载更多
+    const handleLoadMore = () => {
+      if (hasMore && !isLoading) {
+        throttle(getPosts);
+      }
+    };
 
   return (
     <ScreenWrapper bg="white">
@@ -226,11 +316,7 @@ const HomeScreen = () => {
               titleColor={theme.colors.textLight} // iOS
             />
           }
-          onEndReached={() => {
-            if (hasMore && !isLoading) {
-              getPosts();
-            }
-          }}
+          onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5} // 提前触发加载更多，避免用户滚动太快
           ListFooterComponent={
             posts.length > 0 ? (

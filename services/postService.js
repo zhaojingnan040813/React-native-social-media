@@ -46,7 +46,7 @@ export const createOrUpdatePost = async (post)=>{
 //查询帖子列表，可能带有分页和用户过滤 (select，带有 .limit(), .eq() 等修饰符)。
 export const fetchPosts = async (limit=10, userId=null, tagFilter=null)=>{
     try{
-        // 1. 首先获取帖子数据
+        // 1. 首先获取帖子数据 - 使用简单查询避免外键问题
         let postsQuery = supabase
             .from('posts')
             .select('*')
@@ -54,12 +54,49 @@ export const fetchPosts = async (limit=10, userId=null, tagFilter=null)=>{
         
         // 如果提供了用户ID，则筛选特定用户的帖子
         if(userId){
-            postsQuery = postsQuery.eq('"userId"', userId);
+            postsQuery = postsQuery.eq('userId', userId);
         }
         
-        // 如果提供了标签过滤，则筛选包含该标签的帖子
+        // 如果提供了标签过滤，使用更简单的过滤方法
         if(tagFilter){
-            postsQuery = postsQuery.contains('tags', [tagFilter]);
+            // 使用更灵活的标签搜索方式，尝试几种不同的过滤方法
+            try {
+                // 如果 tags 是 JSON 数组，尝试搜索 JSONB 格式的标签
+                postsQuery = postsQuery.or(`tags->0.eq."${tagFilter}",tags.cs.{"${tagFilter}"}`);
+            } catch (error) {
+                console.log('标签过滤错误，尝试更简单的过滤方式:', error);
+                // 简单的后备方案：在应用层面筛选标签
+                const { data: allPosts } = await supabase
+                    .from('posts')
+                    .select('*')
+                    .order('created_at', {ascending: false })
+                    .limit(limit * 3); // 获取更多数据以便筛选
+                
+                if (allPosts && allPosts.length > 0) {
+                    // 在应用层面筛选包含标签的帖子
+                    posts = allPosts.filter(post => {
+                        if (!post.tags) return false;
+                        
+                        let postTags = post.tags;
+                        // 处理 JSON 字符串
+                        if (typeof post.tags === 'string') {
+                            try {
+                                postTags = JSON.parse(post.tags);
+                            } catch (e) {}
+                        }
+                        
+                        // 检查是否包含目标标签
+                        if (Array.isArray(postTags)) {
+                            return postTags.includes(tagFilter);
+                        } else if (typeof postTags === 'object') {
+                            return Object.values(postTags).includes(tagFilter);
+                        }
+                        return false;
+                    }).slice(0, limit); // 限制结果数量
+                    
+                    return { success: true, data: posts };
+                }
+            }
         }
         
         // 应用分页限制
@@ -98,20 +135,20 @@ export const fetchPosts = async (limit=10, userId=null, tagFilter=null)=>{
         const { data: allPostLikes, error: likesError } = await supabase
             .from('postLikes')
             .select('*')
-            .in('"postId"', postIds);
+            .in('postId', postIds);
         
         if(likesError){
             console.log('fetchLikes error: ', likesError);
         }
         
-        // 4. 获取每个帖子的评论数量 - 使用正确的分组语法
+        // 4. 获取每个帖子的评论数量
         let commentsCount = [];
         try {
-            // 使用两个单独的查询来替代分组查询
+            // 使用单独的查询获取评论
             const { data: comments, error: commentsError } = await supabase
                 .from('comments')
-                .select('*')
-                .in('"postId"', postIds);
+                .select('postId')
+                .in('postId', postIds);
                 
             if(commentsError) {
                 console.log('fetchComments error: ', commentsError);
@@ -162,13 +199,12 @@ export const fetchPosts = async (limit=10, userId=null, tagFilter=null)=>{
                 ...post,
                 user,
                 postLikes,
-                comments,
+                comments: [comments],
                 tags
             };
         });
         
         return { success: true, data: enrichedPosts };
-
     }catch(error){
         console.log('fetchPosts error: ', error);
         return {success: false, msg: "Could not fetch the posts"};
@@ -177,6 +213,17 @@ export const fetchPosts = async (limit=10, userId=null, tagFilter=null)=>{
 
 //查询帖子详情，包括帖子内容、用户信息、点赞信息和评论信息。
 export const fetchPostDetails = async (postId)=>{
+    try{
+        // 直接使用分步查询，避免外键关系问题
+        return await fetchPostDetailsLegacy(postId);
+    }catch(error){
+        console.log('postDetails error: ', error);
+        return {success: false, msg: "Could not fetch the post"};
+    }
+}
+
+// 传统方法的帖子详情查询（作为备用）
+const fetchPostDetailsLegacy = async (postId)=>{
     try{
         // 1. 获取帖子信息
         const { data: post, error: postError } = await supabase
@@ -210,7 +257,7 @@ export const fetchPostDetails = async (postId)=>{
         const { data: postLikes, error: likesError } = await supabase
             .from('postLikes')
             .select('*')
-            .eq('"postId"', postId);
+            .eq('postId', postId);
         
         if(likesError){
             console.log('fetchLikes error: ', likesError);
@@ -220,7 +267,7 @@ export const fetchPostDetails = async (postId)=>{
         const { data: comments, error: commentsError } = await supabase
             .from('comments')
             .select('*')
-            .eq('"postId"', postId)
+            .eq('postId', postId)
             .order('created_at', { ascending: false });
         
         if(commentsError){
@@ -302,8 +349,8 @@ export const removePostLike = async (postId, userId)=>{
         const { error } = await supabase
         .from('postLikes')
         .delete()
-        .eq('"userId"', userId)
-        .eq('"postId"', postId)
+        .eq('userId', userId)
+        .eq('postId', postId)
 
         if(error){
             console.log('postLike error: ', error);

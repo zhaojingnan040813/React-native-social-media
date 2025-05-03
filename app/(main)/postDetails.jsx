@@ -8,7 +8,7 @@ import { theme } from '../../constants/theme';
 import Icon from '../../assets/icons';
 import Loading from '../../components/Loading';
 import { createComment, fetchPostDetails, removeComment, removePost } from '../../services/postService';
-import { supabase } from '../../lib/supabase';
+import { supabase, channelManager } from '../../lib/supabase';
 import CommentItem from '../../components/CommentItem';
 import { getUserData } from '../../services/userService';
 import Button from '../../components/Button';
@@ -17,6 +17,10 @@ import { createNotification } from '../../services/notificationService';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Header from '../../components/Header';
 import { FlatList } from 'react-native-gesture-handler';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// 缓存键前缀
+const POST_DETAILS_CACHE_PREFIX = 'post_details_cache_';
 
 const PostDetails = () => {
     const params = useLocalSearchParams();
@@ -35,13 +39,22 @@ const PostDetails = () => {
     const [comment, setComment] = useState(''); 
     const [sending, setSending] = useState(false);
     const [showDelete, setShowDelete] = useState(false);
+    
+    // 使用ref跟踪组件是否已卸载
+    const isMountedRef = useRef(true);
+    
+    // 获取特定帖子的缓存键
+    const getCacheKey = (id) => `${POST_DETAILS_CACHE_PREFIX}${id}`;
 
-    const handleNewComment = async payload=>{
-        if(payload.new){
+    const handleNewComment = async payload => {
+        // 如果组件已卸载，不处理事件
+        if (!isMountedRef.current) return;
+        
+        if (payload.new) {
             let newComment = {...payload.new};
             let res = await getUserData(newComment.userId);
-            newComment.user = res.success? res.data: {};
-            setPost(prev=> {
+            newComment.user = res.success ? res.data : {};
+            setPost(prev => {
                 if (!prev) return prev;
                 return {
                     ...prev,
@@ -50,29 +63,76 @@ const PostDetails = () => {
             });
         }
     }
+    
+    // 尝试从缓存加载帖子详情
+    const loadFromCache = async (id) => {
+        try {
+            const cachedData = await AsyncStorage.getItem(getCacheKey(id));
+            if (cachedData) {
+                const { post: cachedPost, timestamp } = JSON.parse(cachedData);
+                // 如果缓存不超过2分钟，使用缓存数据
+                if (Date.now() - timestamp < 2 * 60 * 1000) {
+                    setPost(cachedPost);
+                    setStartLoading(false);
+                    return true;
+                }
+            }
+        } catch (error) {
+            console.error('Error loading post details from cache:', error);
+        }
+        return false;
+    };
+
+    // 保存数据到缓存
+    const saveToCache = async (id, postData) => {
+        try {
+            const data = {
+                post: postData,
+                timestamp: Date.now()
+            };
+            await AsyncStorage.setItem(getCacheKey(id), JSON.stringify(data));
+        } catch (error) {
+            console.error('Error saving post details to cache:', error);
+        }
+    };
 
     useEffect(() => {
+        // 设置挂载状态
+        isMountedRef.current = true;
+        
         // console.log(`帖子详情页面挂载/更新，帖子ID: ${postId}`);
         
         setPost(null);
         setStartLoading(true);
         
         if (postId) {
-            getPostDetails();
+            // 先尝试从缓存加载
+            loadFromCache(postId).then(cacheHit => {
+                if (!cacheHit) {
+                    getPostDetails();
+                }
+            });
             
-            let channel = supabase
-            .channel(`comments-${postId}`)
-            .on('postgres_changes', { 
-                event: 'INSERT', 
-                schema: 'public', 
-                table: 'comments',
-                filter: `postId=eq.${postId}`,
-            }, handleNewComment)
-            .subscribe();
+            // 使用通道管理器获取或创建通道
+            const channelName = `comments-${postId}`;
+            const channel = channelManager.getOrCreateChannel(channelName, null);
+            
+            // 添加评论变更监听
+            channel
+                .on('postgres_changes', { 
+                    event: 'INSERT', 
+                    schema: 'public', 
+                    table: 'comments',
+                    filter: `postId=eq.${postId}`,
+                }, handleNewComment)
+                .subscribe();
             
             return () => {
-                // console.log(`清理帖子详情页面，帖子ID: ${postId}`);
-                supabase.removeChannel(channel);
+                // 标记组件已卸载
+                isMountedRef.current = false;
+                
+                // 移除通道订阅
+                channelManager.removeChannelSubscriber(channelName);
             }
         }
     }, [postId, timestamp]);
@@ -83,21 +143,28 @@ const PostDetails = () => {
             const res = await fetchPostDetails(postId);
             // console.log(`帖子详情获取结果:`, res.success ? '成功' : '失败');
             
+            // 确保组件仍然挂载
+            if (!isMountedRef.current) return;
+            
             setStartLoading(false);
             if (res.success) {
                 setPost(res.data);
+                // 保存到缓存
+                saveToCache(postId, res.data);
             } else {
                 Alert.alert('提示', '获取帖子详情失败');
             }
         } catch (error) {
             console.error('获取帖子详情出错:', error);
-            setStartLoading(false);
-            Alert.alert('错误', '获取帖子详情时发生错误');
+            if (isMountedRef.current) {
+                setStartLoading(false);
+                Alert.alert('错误', '获取帖子详情时发生错误');
+            }
         }
     }
 
-    const onNewComment = async ()=>{
-        if(!comment.trim()) return null;
+    const onNewComment = async () => {
+        if (!comment.trim()) return null;
         
         let data = {
             userId: user?.id,
@@ -107,9 +174,13 @@ const PostDetails = () => {
 
         setSending(true);
         let res = await createComment(data);
+        
+        // 确保组件仍然挂载
+        if (!isMountedRef.current) return;
+        
         setSending(false);
-        if(res.success){
-            if(user.id!=post.userId){
+        if (res.success) {
+            if (user.id != post.userId) {
                 let notify = {
                     senderId: user.id,
                     receiverId: post.userId,
@@ -121,39 +192,63 @@ const PostDetails = () => {
 
             setComment('');
             commentRef.current = '';
-        }else{
+        } else {
             Alert.alert('评论', res.msg);
         }
     }
 
-    const onDeleteComment = async (comment)=>{
+    const onDeleteComment = async (comment) => {
         let res = await removeComment(comment.id);
-        if(res.success){
-            setPost(prevPost=>{
+        
+        // 确保组件仍然挂载
+        if (!isMountedRef.current) return;
+        
+        if (res.success) {
+            setPost(prevPost => {
                 let updatedPost = {...prevPost};
-                updatedPost.comments = updatedPost.comments.filter(c=> c.id != comment.id);
+                updatedPost.comments = updatedPost.comments.filter(c => c.id != comment.id);
                 return updatedPost;
-            })
-        }else{
+            });
+            
+            // 更新缓存
+            if (post) {
+                const updatedPost = {
+                    ...post,
+                    comments: post.comments.filter(c => c.id != comment.id)
+                };
+                saveToCache(postId, updatedPost);
+            }
+        } else {
             Alert.alert('Comment', res.msg);
         }
     }
 
-    const onDeletePost = async ()=>{
+    const onDeletePost = async () => {
         let res = await removePost(post.id);
-        if(res.success){
+        
+        // 确保组件仍然挂载
+        if (!isMountedRef.current) return;
+        
+        if (res.success) {
+            // 删除缓存
+            try {
+                await AsyncStorage.removeItem(getCacheKey(postId));
+            } catch (error) {
+                console.error('Error removing post from cache:', error);
+            }
+            
             router.back();
-        }else{
+        } else {
             Alert.alert('Post', res.msg);
         }
     }
-    const onEditPost = async ()=>{
+    
+    const onEditPost = async () => {
         router.back();
         router.push({pathname: 'newPost', params: {...post}});
-        
     }
 
-    if(startLoading){
+    if (startLoading) {
         return (
             <View style={styles.center}>
                 <Loading />
@@ -161,13 +256,12 @@ const PostDetails = () => {
         )
     }
 
-    if(!post){
+    if (!post) {
         return (
             <View style={[styles.center, {justifyContent: 'flex-start', marginTop: 100}]}>
                 <Text style={styles.notFound}>Post not found !</Text>
             </View>     
         )
-        
     }
     
   return (
