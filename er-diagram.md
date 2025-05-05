@@ -9,6 +9,10 @@ erDiagram
     users ||--o{ notifications : "接收"
     posts ||--o{ comments : "包含"
     posts ||--o{ postLikes : "被点赞"
+    users ||--o{ conversations : "参与"
+    users ||--o{ messages : "发送"
+    users ||--o{ messages : "接收"
+    conversations ||--o{ messages : "包含"
 
     users {
         uuid id PK
@@ -16,6 +20,8 @@ erDiagram
         text name
         text image
         text bio
+        text StudentIdNumber
+        text password
         text email
         text address
         text phoneNumber
@@ -52,13 +58,32 @@ erDiagram
         uuid receiverId FK
         text data
     }
+    
+    conversations {
+        bigint id PK
+        timestamp created_at
+        timestamp updated_at
+        uuid user1Id FK
+        uuid user2Id FK
+    }
+    
+    messages {
+        bigint id PK
+        bigint conversation_id FK
+        uuid senderId FK
+        uuid receiverId FK
+        text content
+        boolean is_read
+        text media_url
+        timestamp created_at
+    }
 ```
 
 ## 表关系说明
 
 1. **users表** - 存储用户信息
    - 主键: id (UUID)
-   - 包含用户基本信息如姓名、头像、简介、邮箱等
+   - 包含用户基本信息如姓名、头像、简介、学号、密码等
 
 2. **posts表** - 存储用户发布的帖子
    - 主键: id (bigint)
@@ -84,4 +109,17 @@ erDiagram
    - 外键: senderId 关联到users表
    - 外键: receiverId 关联到users表
    - 一个用户可以发送多个通知
-   - 一个用户可以接收多个通知 
+   - 一个用户可以接收多个通知
+   
+6. **conversations表** - 存储用户之间的对话
+   - 主键: id (bigint)
+   - 外键: user1Id 关联到users表
+   - 外键: user2Id 关联到users表
+   - 使用唯一索引确保两个用户之间只有一个对话
+
+7. **messages表** - 存储私信消息
+   - 主键: id (bigint)
+   - 外键: conversation_id 关联到conversations表
+   - 外键: senderId 关联到users表 (发送者)
+   - 外键: receiverId 关联到users表 (接收者)
+   - 包含消息内容、已读状态和创建时间 

@@ -1,0 +1,333 @@
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TextInput, 
+  TouchableOpacity, 
+  FlatList, 
+  KeyboardAvoidingView, 
+  Platform, 
+  ActivityIndicator,
+  Alert
+} from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useAuth } from '../../contexts/AuthContext';
+import ScreenWrapper from '../../components/ScreenWrapper';
+import { theme } from '../../constants/theme';
+import { hp, wp } from '../../helpers/common';
+import Icon from '../../assets/icons';
+import Avatar from '../../components/Avatar';
+import { getConversationMessages, sendMessage, markMessagesAsRead } from '../../services/messageService';
+import { supabase } from '../../lib/supabase';
+
+const Conversation = () => {
+  const { user } = useAuth();
+  const router = useRouter();
+  const params = useLocalSearchParams();
+  const { conversationId, userId, userName } = params;
+  
+  const [messages, setMessages] = useState([]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  
+  const flatListRef = useRef(null);
+  const subscription = useRef(null);
+  
+  // 加载消息并订阅实时更新
+  useEffect(() => {
+    loadMessages();
+    
+    // 设置实时订阅
+    setupMessagesSubscription();
+    
+    // 清理函数
+    return () => {
+      if (subscription.current) {
+        supabase.removeChannel(subscription.current);
+      }
+    };
+  }, [conversationId]);
+  
+  // 加载对话消息
+  const loadMessages = async () => {
+    try {
+      setLoading(true);
+      const response = await getConversationMessages(conversationId);
+      
+      if (response.success) {
+        setMessages(response.data);
+        
+        // 标记消息为已读
+        await markMessagesAsRead(conversationId, user.id);
+      } else {
+        console.error('加载消息失败:', response.msg);
+      }
+    } catch (error) {
+      console.error('加载消息出错:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // 设置消息实时订阅
+  const setupMessagesSubscription = () => {
+    const channel = supabase
+      .channel(`conversation:${conversationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversationId}`
+        },
+        (payload) => {
+          // 添加新消息到列表
+          setMessages((prev) => [...prev, payload.new]);
+          
+          // 如果消息接收者是当前用户，标记为已读
+          if (payload.new.receiverId === user.id) {
+            markMessagesAsRead(conversationId, user.id);
+          }
+        }
+      )
+      .subscribe();
+    
+    subscription.current = channel;
+  };
+  
+  // 处理发送消息
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim()) return;
+    
+    try {
+      setSending(true);
+      
+      const response = await sendMessage(
+        conversationId,
+        user.id,
+        userId,
+        inputMessage.trim()
+      );
+      
+      if (response.success) {
+        setInputMessage('');
+        
+        // 滚动到底部
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      } else {
+        Alert.alert('发送失败', '无法发送消息，请稍后再试。');
+      }
+    } catch (error) {
+      console.error('发送消息出错:', error);
+      Alert.alert('错误', '发送消息时出现问题');
+    } finally {
+      setSending(false);
+    }
+  };
+  
+  // 返回上一页
+  const handleGoBack = () => {
+    router.back();
+  };
+  
+  // 渲染消息项
+  const renderMessageItem = ({ item }) => {
+    const isMyMessage = item.senderId === user.id;
+    
+    return (
+      <View style={[
+        styles.messageContainer,
+        isMyMessage ? styles.myMessageContainer : styles.otherMessageContainer
+      ]}>
+        {!isMyMessage && (
+          <Avatar source={null} size={36} style={styles.messageAvatar} />
+        )}
+        
+        <View style={[
+          styles.messageBubble,
+          isMyMessage ? styles.myMessageBubble : styles.otherMessageBubble
+        ]}>
+          <Text style={[
+            styles.messageText,
+            isMyMessage ? styles.myMessageText : styles.otherMessageText
+          ]}>
+            {item.content}
+          </Text>
+        </View>
+      </View>
+    );
+  };
+  
+  return (
+    <ScreenWrapper bg="white">
+      {/* 头部 */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
+          <Icon name="arrowLeft" size={24} color={theme.colors.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>{userName || '对话'}</Text>
+        <View style={styles.headerRight} />
+      </View>
+      
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
+        {/* 消息列表 */}
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+          </View>
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            renderItem={renderMessageItem}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={styles.messagesList}
+            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+            onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+        
+        {/* 底部输入框 */}
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="输入消息..."
+            placeholderTextColor={theme.colors.textLight}
+            value={inputMessage}
+            onChangeText={setInputMessage}
+            multiline
+          />
+          <TouchableOpacity
+            style={[styles.sendButton, !inputMessage.trim() && styles.sendButtonDisabled]}
+            onPress={handleSendMessage}
+            disabled={!inputMessage.trim() || sending}
+          >
+            {sending ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Icon name="send" size={20} color="white" />
+            )}
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </ScreenWrapper>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  backButton: {
+    padding: 4,
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: hp(2.2),
+    fontWeight: '600',
+    color: theme.colors.text,
+    marginLeft: -24, // 为了视觉上的居中
+  },
+  headerRight: {
+    width: 24,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  messagesList: {
+    padding: 16,
+    paddingBottom: 8,
+  },
+  messageContainer: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    maxWidth: '80%',
+  },
+  myMessageContainer: {
+    alignSelf: 'flex-end',
+  },
+  otherMessageContainer: {
+    alignSelf: 'flex-start',
+  },
+  messageAvatar: {
+    marginRight: 8,
+    alignSelf: 'flex-end',
+  },
+  messageBubble: {
+    padding: 12,
+    borderRadius: 16,
+    maxWidth: '100%',
+  },
+  myMessageBubble: {
+    backgroundColor: theme.colors.primary,
+    borderBottomRightRadius: 4,
+  },
+  otherMessageBubble: {
+    backgroundColor: theme.colors.greyLight,
+    borderBottomLeftRadius: 4,
+  },
+  messageText: {
+    fontSize: hp(1.8),
+    lineHeight: hp(2.5),
+  },
+  myMessageText: {
+    color: 'white',
+  },
+  otherMessageText: {
+    color: theme.colors.text,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    padding: 12,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+    alignItems: 'flex-end',
+  },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 10,
+    maxHeight: 100,
+    fontSize: hp(1.8),
+    backgroundColor: theme.colors.background,
+  },
+  sendButton: {
+    marginLeft: 8,
+    backgroundColor: theme.colors.primary,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sendButtonDisabled: {
+    backgroundColor: theme.colors.greyLight,
+  },
+});
+
+export default Conversation; 

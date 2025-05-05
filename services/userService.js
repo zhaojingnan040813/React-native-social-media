@@ -88,6 +88,32 @@ export const getUserByStudentId = async (studentId) => {
     }
 }
 
+// 获取所有用户列表（排除当前用户）
+export const getAllUsers = async (currentUserId) => {
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .select(`
+                id,
+                name,
+                image,
+                StudentIdNumber,
+                college,
+                major
+            `)
+            .neq('id', currentUserId);
+
+        if (error) {
+            console.log('getAllUsers error:', error);
+            return { success: false, msg: error?.message };
+        }
+        return { success: true, data };
+    } catch (error) {
+        console.log('getAllUsers error:', error);
+        return { success: false, msg: error.message };
+    }
+}
+
 /* 
 封装与 users 表相关的操作
 

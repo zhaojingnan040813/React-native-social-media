@@ -132,6 +132,51 @@ create table public.users (
   email character varying(255)
 );
 
+-- 开始开发私信功能，又创建了conversations表和messages表
+-- 为会话表创建自增序列
+CREATE SEQUENCE conversations_id_seq;
+
+-- 会话表：记录用户之间的私信会话
+create table public.conversations (
+                                      id bigint primary key not null default nextval('conversations_id_seq'::regclass),
+                                      created_at timestamp with time zone not null default now(),
+                                      updated_at timestamp with time zone not null default now(),
+                                      "user1Id" uuid not null, -- 会话参与者1的用户ID
+                                      "user2Id" uuid not null  -- 会话参与者2的用户ID
+);
+
+-- 索引：加速按用户查询会话
+create index idx_conversations_user1 on conversations using btree ("user1Id");
+create index idx_conversations_user2 on conversations using btree ("user2Id");
+
+-- 唯一索引：确保两个用户之间只有一个会话
+create unique index unique_conversation on conversations
+    using btree (least("user1Id", "user2Id"), greatest("user1Id", "user2Id"));
+
+
+-- 为消息表创建自增序列
+CREATE SEQUENCE messages_id_seq;
+
+-- 消息表：存储私信内容
+create table public.messages (
+                                 id bigint primary key not null default nextval('messages_id_seq'::regclass),
+                                 conversation_id bigint not null, -- 关联到conversations表
+                                 "senderId" uuid not null, -- 发送者用户ID
+                                 "receiverId" uuid not null, -- 接收者用户ID
+                                 content text not null, -- 消息内容
+                                 is_read boolean default false, -- 是否已读
+                                 media_url text, -- 可选，附加媒体文件的URL
+                                 created_at timestamp with time zone not null default now()
+);
+
+-- 索引：加速按会话ID查询消息
+create index idx_messages_conversation_id on messages using btree (conversation_id);
+
+-- 索引：加速查询未读消息
+create index idx_messages_is_read on messages using btree (is_read) where is_read = false;
+
+-- 索引：加速按接收者查询消息
+create index idx_messages_receiver_id on messages using btree ("receiverId");
 
 
 
