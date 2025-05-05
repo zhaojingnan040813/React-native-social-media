@@ -75,7 +75,7 @@ const Messages = () => {
       // 获取或创建对话
       const result = await getOrCreateConversation(user.id, selectedUser.id);
       
-      if (result.success) {
+      if (result.success && result.data) {
         // 导航到对话页面
         router.push({
           pathname: '/(secondary)/conversation',
@@ -86,11 +86,15 @@ const Messages = () => {
           }
         });
       } else {
-        Alert.alert('提示', '无法创建对话，请稍后再试');
+        console.log('对话创建/获取失败:', result.msg);
+        Alert.alert(
+          '提示', 
+          '无法进入对话，请稍后再试。错误信息: ' + (result.msg || '未知错误')
+        );
       }
     } catch (error) {
       console.log('处理对话出错:', error);
-      Alert.alert('错误', '处理对话时出现问题');
+      Alert.alert('错误', '处理对话时出现问题: ' + error.message);
     } finally {
       setLoading(false);
     }

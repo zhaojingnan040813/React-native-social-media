@@ -7,35 +7,70 @@ export const getOrCreateConversation = async (user1Id, user2Id) => {
         const smallerId = user1Id < user2Id ? user1Id : user2Id;
         const largerId = user1Id < user2Id ? user2Id : user1Id;
         
-        // 先尝试查找现有对话
+        // 先尝试查找现有对话 - 使用正确的过滤方式
         const { data, error } = await supabase
             .from('conversations')
             .select('*')
-            .or(`"user1Id".eq.${smallerId},"user2Id".eq.${largerId}`)
-            .or(`"user1Id".eq.${largerId},"user2Id".eq.${smallerId}`)
-            .single();
+            .or(`and(user1Id.eq.${smallerId},user2Id.eq.${largerId}),and(user1Id.eq.${largerId},user2Id.eq.${smallerId})`)
+            .maybeSingle();
         
         // 如果找到现有对话，直接返回
-        if (data && !error) {
+        if (data) {
             return { success: true, data };
         }
         
-        // 否则创建新对话
-        const { data: newConversation, error: createError } = await supabase
-            .from('conversations')
-            .insert({
-                "user1Id": smallerId,
-                "user2Id": largerId
-            })
-            .select()
-            .single();
-        
-        if (createError) {
-            console.log('创建对话失败:', createError);
-            return { success: false, msg: createError.message };
+        // 如果没有查询错误但是没找到对话，尝试创建新对话
+        if (!error) {
+            try {
+                const { data: newConversation, error: createError } = await supabase
+                    .from('conversations')
+                    .insert({
+                        "user1Id": smallerId,
+                        "user2Id": largerId
+                    })
+                    .select()
+                    .single();
+                
+                if (createError) {
+                    // 如果是唯一约束冲突，说明对话可能已被创建（并发情况）
+                    if (createError.code === '23505') {
+                        // 重新查询一次
+                        const { data: retryData } = await supabase
+                            .from('conversations')
+                            .select('*')
+                            .or(`and(user1Id.eq.${smallerId},user2Id.eq.${largerId}),and(user1Id.eq.${largerId},user2Id.eq.${smallerId})`)
+                            .maybeSingle();
+                        
+                        if (retryData) {
+                            return { success: true, data: retryData };
+                        }
+                    }
+                    
+                    console.log('创建对话失败:', createError);
+                    return { success: false, msg: createError.message };
+                }
+                
+                return { success: true, data: newConversation };
+            } catch (insertError) {
+                console.log('对话插入失败:', insertError);
+                
+                // 插入失败后再次尝试查询（可能是并发创建导致的）
+                const { data: retryData } = await supabase
+                    .from('conversations')
+                    .select('*')
+                    .or(`and(user1Id.eq.${smallerId},user2Id.eq.${largerId}),and(user1Id.eq.${largerId},user2Id.eq.${smallerId})`)
+                    .maybeSingle();
+                
+                if (retryData) {
+                    return { success: true, data: retryData };
+                }
+                
+                return { success: false, msg: insertError.message };
+            }
+        } else {
+            console.log('查询对话失败:', error);
+            return { success: false, msg: error.message };
         }
-        
-        return { success: true, data: newConversation };
     } catch (error) {
         console.log('对话操作失败:', error);
         return { success: false, msg: error.message };

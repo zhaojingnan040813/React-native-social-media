@@ -54,6 +54,15 @@ const Conversation = () => {
   const loadMessages = async () => {
     try {
       setLoading(true);
+      
+      // 验证必要参数
+      if (!conversationId || !user?.id) {
+        console.error('缺少必要参数：', { conversationId, userId: user?.id });
+        Alert.alert('提示', '无法加载对话，请返回重试');
+        router.back();
+        return;
+      }
+      
       const response = await getConversationMessages(conversationId);
       
       if (response.success) {
@@ -63,9 +72,11 @@ const Conversation = () => {
         await markMessagesAsRead(conversationId, user.id);
       } else {
         console.error('加载消息失败:', response.msg);
+        Alert.alert('提示', '无法加载消息: ' + response.msg);
       }
     } catch (error) {
       console.error('加载消息出错:', error);
+      Alert.alert('错误', '加载消息时出现问题');
     } finally {
       setLoading(false);
     }
@@ -73,34 +84,46 @@ const Conversation = () => {
   
   // 设置消息实时订阅
   const setupMessagesSubscription = () => {
-    const channel = supabase
-      .channel(`conversation:${conversationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${conversationId}`
-        },
-        (payload) => {
-          // 添加新消息到列表
-          setMessages((prev) => [...prev, payload.new]);
-          
-          // 如果消息接收者是当前用户，标记为已读
-          if (payload.new.receiverId === user.id) {
-            markMessagesAsRead(conversationId, user.id);
+    try {
+      if (!conversationId) return;
+      
+      const channel = supabase
+        .channel(`conversation:${conversationId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages',
+            filter: `conversation_id=eq.${conversationId}`
+          },
+          (payload) => {
+            // 添加新消息到列表
+            setMessages((prev) => [...prev, payload.new]);
+            
+            // 如果消息接收者是当前用户，标记为已读
+            if (payload.new.receiverId === user.id) {
+              markMessagesAsRead(conversationId, user.id);
+            }
           }
-        }
-      )
-      .subscribe();
-    
-    subscription.current = channel;
+        )
+        .subscribe();
+      
+      subscription.current = channel;
+    } catch (error) {
+      console.error('设置实时订阅失败:', error);
+    }
   };
   
   // 处理发送消息
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
+    
+    // 验证必要参数
+    if (!conversationId || !user?.id || !userId) {
+      Alert.alert('提示', '消息发送失败：缺少必要信息');
+      return;
+    }
     
     try {
       setSending(true);
@@ -120,11 +143,12 @@ const Conversation = () => {
           flatListRef.current?.scrollToEnd({ animated: true });
         }, 100);
       } else {
-        Alert.alert('发送失败', '无法发送消息，请稍后再试。');
+        console.error('发送消息失败:', response.msg);
+        Alert.alert('发送失败', '无法发送消息，请稍后再试：' + response.msg);
       }
     } catch (error) {
       console.error('发送消息出错:', error);
-      Alert.alert('错误', '发送消息时出现问题');
+      Alert.alert('错误', '发送消息时出现问题：' + error.message);
     } finally {
       setSending(false);
     }
