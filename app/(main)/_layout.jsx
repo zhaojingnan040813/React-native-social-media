@@ -1,9 +1,11 @@
 import { View, Text, StyleSheet, Pressable, BackHandler, Alert } from 'react-native'
 import React, { useEffect } from 'react'
-import { Tabs, useRouter, usePathname } from 'expo-router'
+import { Tabs, useRouter, usePathname, Redirect } from 'expo-router'
 import { theme } from '../../constants/theme'
 import Icon from '../../assets/icons'
 import { hp, wp } from '../../helpers/common'
+import { useAuth } from '../../contexts/AuthContext'
+import { checkSession } from '../../helpers/sessionHelper'
 
 // 1. 定义自定义按钮组件
 const PublishTabButton = (props) => {
@@ -22,7 +24,12 @@ const PublishTabButton = (props) => {
   );
 };
 
+/**
+ * 主布局组件 - 所有需要登录才能访问的页面
+ */
 export default function MainLayout() {
+  const { user, isLoading, sessionValid } = useAuth();
+  const router = useRouter();
   const pathname = usePathname();
   
   // 判断是否是主页面（一级路由），这些是应用的主要tab页面
@@ -67,6 +74,28 @@ export default function MainLayout() {
     // 在组件卸载时移除监听器
     return () => backHandler.remove();
   }, [pathname]);
+
+  // 检查会话有效性 - 添加会话验证
+  useEffect(() => {
+    if (!isLoading && user) {
+      // 用户已登录时，检查会话有效性
+      const validateUserSession = async () => {
+        await checkSession(router);
+      };
+      
+      validateUserSession();
+    }
+  }, [isLoading, user, pathname]);
+
+  // 重定向未登录用户到登录页面
+  if (!isLoading && !user) {
+    return <Redirect href="/login" />;
+  }
+
+  // 如果会话失效，重定向到登录页面
+  if (!isLoading && user && !sessionValid) {
+    return <Redirect href="/login" />;
+  }
 
   return (
     <Tabs

@@ -154,9 +154,60 @@ export const getCurrentSession = async () => {
       return null;
     }
     
+    // 如果会话即将过期（小于3天），自动延长会话有效期
+    const expiresAt = new Date(session.expires_at);
+    const now = new Date();
+    const threeDaysInMs = 3 * 24 * 60 * 60 * 1000;
+    
+    if ((expiresAt - now) < threeDaysInMs) {
+      await refreshSession(session);
+    }
+    
     return session;
   } catch (error) {
+    console.error('会话获取错误:', error);
     return null;
+  }
+};
+
+// 刷新会话有效期（延长7天）
+export const refreshSession = async (session) => {
+  try {
+    if (!session || !session.user) return null;
+    
+    // 更新过期时间
+    const updatedSession = {
+      ...session,
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    };
+    
+    // 存储更新后的会话
+    await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(updatedSession));
+    
+    return updatedSession;
+  } catch (error) {
+    console.error('会话刷新错误:', error);
+    return session; // 返回原会话，避免刷新失败导致登出
+  }
+};
+
+// 验证会话有效性（可在关键操作前调用）
+export const validateSession = async () => {
+  try {
+    const session = await getCurrentSession();
+    if (!session || !session.user) {
+      return { valid: false, msg: '会话已过期或不存在' };
+    }
+    
+    // 这里可以添加更多验证逻辑，例如：
+    // 1. 向服务器验证用户账号是否仍然有效
+    // 2. 检查用户权限是否变更
+    // 3. 验证设备信息是否一致
+    
+    return { valid: true, session };
+  } catch (error) {
+    console.error('会话验证错误:', error);
+    return { valid: false, msg: '会话验证出错' };
   }
 };
 
@@ -166,6 +217,7 @@ export const logoutUser = async () => {
     await AsyncStorage.removeItem(SESSION_KEY);
     return { success: true };
   } catch (error) {
+    console.error('登出错误:', error);
     return { success: false, msg: error.message };
   }
 }; 
