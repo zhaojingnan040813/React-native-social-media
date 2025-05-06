@@ -87,8 +87,13 @@ const Conversation = () => {
     try {
       if (!conversationId) return;
       
+      // 创建具有唯一ID的通道名称，避免多个通道冲突
+      const channelName = `conversation:${conversationId}:${new Date().getTime()}`;
+      
+      console.log('设置实时订阅:', channelName);
+      
       const channel = supabase
-        .channel(`conversation:${conversationId}`)
+        .channel(channelName)
         .on(
           'postgres_changes',
           {
@@ -98,8 +103,34 @@ const Conversation = () => {
             filter: `conversation_id=eq.${conversationId}`
           },
           (payload) => {
-            // 添加新消息到列表
-            setMessages((prev) => [...prev, payload.new]);
+            console.log('收到新消息通知:', payload);
+            
+            // 添加新消息到列表，避免重复
+            setMessages((prev) => {
+              // 检查消息是否已经存在（根据ID或临时消息内容匹配）
+              const exists = prev.some(msg => 
+                msg.id === payload.new.id || 
+                (msg._isTemp && 
+                 msg.senderId === payload.new.senderId && 
+                 msg.content === payload.new.content &&
+                 Math.abs(new Date(msg.created_at) - new Date(payload.new.created_at)) < 60000) // 1分钟内发送的相同内容消息视为同一条
+              );
+              
+              if (exists) {
+                // 如果消息已存在，则替换临时消息
+                return prev.map(msg => {
+                  if (msg._isTemp && 
+                      msg.senderId === payload.new.senderId && 
+                      msg.content === payload.new.content &&
+                      Math.abs(new Date(msg.created_at) - new Date(payload.new.created_at)) < 60000) {
+                    return { ...payload.new, _replaced: true };
+                  }
+                  return msg;
+                }).filter(msg => msg.id !== payload.new.id || !msg._replaced);
+              }
+              
+              return [...prev, payload.new];
+            });
             
             // 如果消息接收者是当前用户，标记为已读
             if (payload.new.receiverId === user.id) {
@@ -107,7 +138,38 @@ const Conversation = () => {
             }
           }
         )
-        .subscribe();
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'messages',
+            filter: `conversation_id=eq.${conversationId}`
+          },
+          (payload) => {
+            console.log('收到消息更新通知:', payload);
+            
+            // 更新消息状态，避免重复更新
+            setMessages((prev) => {
+              // 检查是否已经应用了这个更新
+              const alreadyUpdated = prev.some(msg => 
+                msg.id === payload.new.id && 
+                msg.is_read === payload.new.is_read
+              );
+              
+              if (alreadyUpdated) {
+                return prev; // 如果已经更新过，不做任何改变
+              }
+              
+              return prev.map(msg => 
+                msg.id === payload.new.id ? payload.new : msg
+              );
+            });
+          }
+        )
+        .subscribe((status) => {
+          console.log('实时订阅状态:', status);
+        });
       
       subscription.current = channel;
     } catch (error) {
@@ -125,6 +187,33 @@ const Conversation = () => {
       return;
     }
     
+    // 生成唯一的临时ID
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    
+    // 创建临时消息对象(用于立即显示)
+    const tempMessage = {
+      id: tempId,
+      conversation_id: conversationId,
+      senderId: user.id,
+      receiverId: userId,
+      content: inputMessage.trim(),
+      is_read: false,
+      created_at: new Date().toISOString(),
+      // 添加临时标记
+      _isTemp: true
+    };
+    
+    // 先添加到本地显示
+    setMessages(prev => [...prev, tempMessage]);
+    
+    // 清空输入框
+    setInputMessage('');
+    
+    // 滚动到底部
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 50);
+    
     try {
       setSending(true);
       
@@ -132,21 +221,33 @@ const Conversation = () => {
         conversationId,
         user.id,
         userId,
-        inputMessage.trim()
+        tempMessage.content
       );
       
       if (response.success) {
-        setInputMessage('');
-        
-        // 滚动到底部
-        setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: true });
-        }, 100);
+        // 用实际消息替换临时消息
+        setMessages(prev => prev.map(msg => 
+          msg.id === tempId ? { ...response.data, _isTemp: false } : msg
+        ));
       } else {
+        // 发送失败，标记消息为失败状态
+        setMessages(prev => prev.map(msg => 
+          msg.id === tempId 
+            ? { ...msg, _sendFailed: true } 
+            : msg
+        ));
+        
         console.error('发送消息失败:', response.msg);
         Alert.alert('发送失败', '无法发送消息，请稍后再试：' + response.msg);
       }
     } catch (error) {
+      // 标记消息为失败状态
+      setMessages(prev => prev.map(msg => 
+        msg.id === tempId 
+          ? { ...msg, _sendFailed: true } 
+          : msg
+      ));
+      
       console.error('发送消息出错:', error);
       Alert.alert('错误', '发送消息时出现问题：' + error.message);
     } finally {
@@ -162,19 +263,26 @@ const Conversation = () => {
   // 渲染消息项
   const renderMessageItem = ({ item }) => {
     const isMyMessage = item.senderId === user.id;
+    const isTempMessage = item._isTemp === true;
+    const sendFailed = item._sendFailed === true;
     
     return (
-      <View style={[
-        styles.messageContainer,
-        isMyMessage ? styles.myMessageContainer : styles.otherMessageContainer
-      ]}>
+      <View 
+        key={item.id} // 确保key是唯一的
+        style={[
+          styles.messageContainer,
+          isMyMessage ? styles.myMessageContainer : styles.otherMessageContainer
+        ]}
+      >
         {!isMyMessage && (
           <Avatar source={null} size={36} style={styles.messageAvatar} />
         )}
         
         <View style={[
           styles.messageBubble,
-          isMyMessage ? styles.myMessageBubble : styles.otherMessageBubble
+          isMyMessage ? styles.myMessageBubble : styles.otherMessageBubble,
+          isTempMessage && styles.tempMessageBubble,
+          sendFailed && styles.failedMessageBubble
         ]}>
           <Text style={[
             styles.messageText,
@@ -182,6 +290,16 @@ const Conversation = () => {
           ]}>
             {item.content}
           </Text>
+          
+          {sendFailed && (
+            <Text style={styles.errorText}>发送失败</Text>
+          )}
+          
+          {isTempMessage && !sendFailed && (
+            <View style={styles.sendingIndicator}>
+              <ActivityIndicator size="small" color={isMyMessage ? "white" : theme.colors.textLight} />
+            </View>
+          )}
         </View>
       </View>
     );
@@ -219,7 +337,7 @@ const Conversation = () => {
             ref={flatListRef}
             data={messages}
             renderItem={renderMessageItem}
-            keyExtractor={(item) => item.id.toString()}
+            keyExtractor={(item) => String(item.id)}
             contentContainerStyle={styles.messagesList}
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
             onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
@@ -403,6 +521,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#cccccc',
     shadowOpacity: 0,
     elevation: 0,
+  },
+  tempMessageBubble: {
+    opacity: 0.8,
+  },
+  failedMessageBubble: {
+    borderWidth: 1,
+    borderColor: 'red',
+  },
+  sendingIndicator: {
+    position: 'absolute',
+    right: 8,
+    bottom: 8,
+  },
+  errorText: {
+    fontSize: hp(1.4),
+    color: 'red',
+    marginTop: 4,
   },
 });
 

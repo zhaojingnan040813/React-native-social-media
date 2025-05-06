@@ -5,18 +5,40 @@ import { AuthProvider, useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { getUserData } from '../services/userService'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import MessageSyncManager from '../components/MessageSyncManager'
+import { ToastAndroid } from 'react-native'
+
+// 忽略特定的黄色警告
+LogBox.ignoreLogs([
+  'Overwriting fontFamily style attribute preprocessor',
+  'Sending `onAnimatedValueUpdate` with no listeners registered.'
+]);
 
 const _layout = () => {
+  const [isConnected, setIsConnected] = useState(true);
+
+  // 处理连接状态变化
+  const handleConnectionChange = (connected) => {
+    setIsConnected(connected);
+    if (!connected) {
+      ToastAndroid.show('网络连接已断开，部分功能可能不可用', ToastAndroid.SHORT);
+    } else {
+      ToastAndroid.show('网络已连接', ToastAndroid.SHORT);
+    }
+  };
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
-        <RootLayoutNav />
+        <MessageSyncManager onConnectionChange={handleConnectionChange}>
+          <RootLayoutNav isConnected={isConnected} />
+        </MessageSyncManager>
       </AuthProvider>
     </GestureHandlerRootView>
   )
 }
 
-function RootLayoutNav() {
+function RootLayoutNav({ isConnected }) {
   const {setAuth, setUserData} = useAuth();
   const router = useRouter();
 
@@ -42,6 +64,7 @@ function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(main)" />
+      <Stack.Screen name="(secondary)" />
       <Stack.Screen name="welcome" />
       <Stack.Screen name="login" />
       <Stack.Screen name="signUp" />

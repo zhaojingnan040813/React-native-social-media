@@ -80,6 +80,24 @@ export const getOrCreateConversation = async (user1Id, user2Id) => {
 // 发送消息
 export const sendMessage = async (conversationId, senderId, receiverId, content) => {
     try {
+        // 首先检查是否已经发送过相同内容的消息
+        // 在短时间内（10秒内）发送的相同内容消息
+        const { data: existingMessages, error: checkError } = await supabase
+            .from('messages')
+            .select('*')
+            .eq('conversation_id', conversationId)
+            .eq('senderId', senderId) 
+            .eq('receiverId', receiverId)
+            .eq('content', content)
+            .gt('created_at', new Date(Date.now() - 10 * 1000).toISOString());
+        
+        // 如果在短时间内已经发送过完全相同的消息，则直接返回该消息
+        if (!checkError && existingMessages && existingMessages.length > 0) {
+            console.log('检测到重复消息，返回现有消息:', existingMessages[0]);
+            return { success: true, data: existingMessages[0] };
+        }
+        
+        // 如果没有检测到重复消息，则创建新消息
         const { data, error } = await supabase
             .from('messages')
             .insert({

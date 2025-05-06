@@ -81,3 +81,22 @@ npm run reset-project
 - 认证：基于JWT的身份验证
 - 存储：Supabase Storage存储图片等媒体文件
 - 实时功能：Supabase Realtime提供实时消息和通知
+
+## Supabase Realtime 配置指南
+
+为了使私信功能中的实时消息更新正常工作，需要在 Supabase 控制台中启用相关表的实时功能：
+
+1. 登录 Supabase 控制台 (https://supabase.com)
+2. 进入你的项目
+3. 在左侧菜单栏中找到 "Database" > "Replication"
+4. 点击 "Tables" 标签
+5. 找到以下两个表，并确保它们的 "Realtime" 列已勾选启用：
+   - `messages` (必须启用)
+   - `conversations` (必须启用)
+6. 如果任何表没有启用实时功能，点击对应行的切换开关将其打开
+7. 保存更改
+
+启用实时功能后，私信功能将能够：
+- 实时接收新消息
+- 实时更新消息已读状态
+- 在网络中断后自动重新连接
