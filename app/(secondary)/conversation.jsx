@@ -191,8 +191,14 @@ const Conversation = () => {
     <ScreenWrapper bg="white">
       {/* 头部 */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
-          <Icon name="arrowLeft" size={24} color={theme.colors.text} />
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={handleGoBack}
+          activeOpacity={0.7}
+        >
+          <View style={styles.backButtonContainer}>
+            <Icon name="arrowLeft" size={22} color={theme.colors.primary} />
+          </View>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{userName || '对话'}</Text>
         <View style={styles.headerRight} />
@@ -232,14 +238,20 @@ const Conversation = () => {
             multiline
           />
           <TouchableOpacity
-            style={[styles.sendButton, !inputMessage.trim() && styles.sendButtonDisabled]}
+            style={[
+              styles.sendButton, 
+              !inputMessage.trim() && styles.sendButtonDisabled
+            ]}
             onPress={handleSendMessage}
             disabled={!inputMessage.trim() || sending}
+            activeOpacity={0.8}
           >
             {sending ? (
               <ActivityIndicator size="small" color="white" />
             ) : (
-              <Icon name="send" size={20} color="white" />
+              <View style={styles.sendIconContainer}>
+                <Icon name="send" size={20} color="white" />
+              </View>
             )}
           </TouchableOpacity>
         </View>
@@ -256,12 +268,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
+    backgroundColor: 'white',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
   },
   backButton: {
-    padding: 4,
+    padding: 2,
+  },
+  backButtonContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#f0f8ff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
   },
   headerTitle: {
     flex: 1,
@@ -269,10 +297,10 @@ const styles = StyleSheet.create({
     fontSize: hp(2.2),
     fontWeight: '600',
     color: theme.colors.text,
-    marginLeft: -24, // 为了视觉上的居中
+    marginLeft: -36, // 为了视觉上的居中
   },
   headerRight: {
-    width: 24,
+    width: 36,
   },
   loadingContainer: {
     flex: 1,
@@ -306,10 +334,20 @@ const styles = StyleSheet.create({
   myMessageBubble: {
     backgroundColor: theme.colors.primary,
     borderBottomRightRadius: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 1,
   },
   otherMessageBubble: {
     backgroundColor: theme.colors.greyLight,
     borderBottomLeftRadius: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 1,
   },
   messageText: {
     fontSize: hp(1.8),
@@ -325,32 +363,46 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 12,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    borderTopColor: 'rgba(0,0,0,0.05)',
     alignItems: 'flex-end',
+    backgroundColor: 'white',
   },
   input: {
     flex: 1,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: 20,
+    borderRadius: 24,
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 10,
     maxHeight: 100,
     fontSize: hp(1.8),
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#f8f8f8',
   },
   sendButton: {
-    marginLeft: 8,
+    marginLeft: 10,
     backgroundColor: theme.colors.primary,
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  sendIconContainer: {
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
   sendButtonDisabled: {
-    backgroundColor: theme.colors.greyLight,
+    backgroundColor: '#cccccc',
+    shadowOpacity: 0,
+    elevation: 0,
   },
 });
 
