@@ -63,7 +63,7 @@ const CommentItem = ({
                 </View>
             </View>
             <Text style={styles.comment}>
-                {item.body}
+                {item.text}
             </Text>
         </View>
     </View>

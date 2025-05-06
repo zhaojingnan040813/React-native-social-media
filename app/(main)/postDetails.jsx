@@ -124,8 +124,7 @@ const PostDetails = () => {
                     schema: 'public', 
                     table: 'comments',
                     filter: `postId=eq.${postId}`,
-                }, handleNewComment)
-                .subscribe();
+                }, handleNewComment);
             
             return () => {
                 // 标记组件已卸载

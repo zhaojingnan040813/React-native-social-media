@@ -113,10 +113,9 @@ const HomeScreen = () => {
       // 使用通道管理器获取或创建通道
       const channel = channelManager.getOrCreateChannel('posts', null);
       
-      // 只有在没有订阅的情况下才添加事件处理程序
+      // 只添加事件处理程序，不再调用subscribe()方法，因为getOrCreateChannel已经在内部进行了订阅
       channel
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, handlePostEvent)
-        .subscribe();
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, handlePostEvent);
 
       // 尝试从缓存加载，如果缓存不存在或过期，则获取新数据
       loadFromCache().then(cacheHit => {
