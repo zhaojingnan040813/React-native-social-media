@@ -87,7 +87,8 @@ export const sendMessage = async (conversationId, senderId, receiverId, content)
                 conversation_id: conversationId,
                 "senderId": senderId,
                 "receiverId": receiverId,
-                content
+                content,
+                type: 'text' // 指定为文本类型消息
             })
             .select()
             .single();
@@ -106,6 +107,47 @@ export const sendMessage = async (conversationId, senderId, receiverId, content)
         return { success: true, data };
     } catch (error) {
         console.log('发送消息失败:', error);
+        return { success: false, msg: error.message };
+    }
+};
+
+// 发送语音消息
+export const sendAudioMessage = async (conversationId, senderId, receiverId, audioUrl, audioDuration) => {
+    try {
+        // 检查参数
+        if (!conversationId || !senderId || !receiverId || !audioUrl) {
+            return { success: false, msg: '发送语音消息缺少必要参数' };
+        }
+        
+        // 创建语音消息记录
+        const { data, error } = await supabase
+            .from('messages')
+            .insert({
+                conversation_id: conversationId,
+                "senderId": senderId,
+                "receiverId": receiverId,
+                content: '', // 对于语音消息，content可以为空
+                type: 'audio', // 指定为语音类型消息
+                media_url: audioUrl, // 语音文件URL
+                audio_duration: Math.round(audioDuration / 1000) // 转换为秒并取整
+            })
+            .select()
+            .single();
+        
+        if (error) {
+            console.log('发送语音消息失败:', error);
+            return { success: false, msg: error.message };
+        }
+        
+        // 更新对话的更新时间
+        await supabase
+            .from('conversations')
+            .update({ updated_at: new Date() })
+            .eq('id', conversationId);
+        
+        return { success: true, data };
+    } catch (error) {
+        console.log('发送语音消息失败:', error);
         return { success: false, msg: error.message };
     }
 };

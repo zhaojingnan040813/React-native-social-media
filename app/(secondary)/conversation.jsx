@@ -11,7 +11,8 @@ import {
   Alert,
   TouchableWithoutFeedback,
   InteractionManager,
-  Animated
+  Animated,
+  Pressable
 } from 'react-native';
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -21,9 +22,11 @@ import { theme } from '../../constants/theme';
 import { hp, wp } from '../../helpers/common';
 import Icon from '../../assets/icons';
 import Avatar from '../../components/Avatar';
-import { getConversationMessages, sendMessage, markMessagesAsRead } from '../../services/messageService';
+import { getConversationMessages, sendMessage, markMessagesAsRead, sendAudioMessage } from '../../services/messageService';
 import { subscribeToConversation } from '../../services/realtimeService';
 import { getUserData } from '../../services/userService';
+import AudioMessage from '../../components/AudioMessage';
+import { startRecording, stopRecording, uploadAudioFile } from '../../services/audioService';
 
 const Conversation = () => {
   const { user } = useAuth();
@@ -35,7 +38,17 @@ const Conversation = () => {
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [otherUser, setOtherUser] = useState(null); // 添加对方用户信息状态
+  const [otherUser, setOtherUser] = useState(null);
+  
+  // 语音输入相关状态
+  const [inputMode, setInputMode] = useState('text'); // 'text' 或 'audio'
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [recordingInstance, setRecordingInstance] = useState(null);
+  const [currentlyPlayingId, setCurrentlyPlayingId] = useState(null);
+  
+  // 录音计时器ref
+  const recordingTimer = useRef(null);
   
   const flatListRef = useRef(null);
   const subscriptionRef = useRef(null);
@@ -43,7 +56,6 @@ const Conversation = () => {
   
   // 分离原生动画和JS动画值
   const backButtonScale = useRef(new Animated.Value(1)).current;
-  // 不再使用动画的背景色，改为静态变化
   const [isBackButtonPressed, setIsBackButtonPressed] = useState(false);
   
   // 加载消息并订阅实时更新，同时获取对方用户信息
@@ -58,11 +70,20 @@ const Conversation = () => {
       }
     }
     
-    // 组件卸载时清理订阅
+    // 组件卸载时清理订阅和录音
     return () => {
       if (subscriptionRef.current) {
         subscriptionRef.current.unsubscribe();
         subscriptionRef.current = null;
+      }
+      
+      // 清理录音实例
+      if (recordingInstance) {
+        stopRecordingCleanup();
+      }
+      
+      if (recordingTimer.current) {
+        clearInterval(recordingTimer.current);
       }
     };
   }, [conversationId, userId]);
@@ -88,7 +109,6 @@ const Conversation = () => {
       
       // 验证必要参数
       if (!conversationId || !user?.id) {
-        // console.error('缺少必要参数：', { conversationId, userId: user?.id });
         Alert.alert('提示', '无法加载对话，请返回重试');
         router.back();
         return;
@@ -107,11 +127,9 @@ const Conversation = () => {
         // 标记消息为已读
         await markMessagesAsRead(conversationId, user.id);
       } else {
-        // console.error('加载消息失败:', response.msg);
         Alert.alert('提示', '无法加载消息: ' + response.msg);
       }
     } catch (error) {
-      // console.error('加载消息出错:', error);
       Alert.alert('错误', '加载消息时出现问题');
     } finally {
       setLoading(false);
@@ -192,7 +210,7 @@ const Conversation = () => {
     }
   };
   
-  // 处理发送消息
+  // 处理发送文本消息
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
     
@@ -216,6 +234,7 @@ const Conversation = () => {
       senderId: user.id,
       receiverId: userId,
       content: messageContent,
+      type: 'text',
       is_read: false,
       created_at: new Date().toISOString(),
       _isTemp: true
@@ -247,11 +266,7 @@ const Conversation = () => {
             : msg
         ));
         
-        // console.error('发送消息失败:', response.msg);
         Alert.alert('发送失败', '无法发送消息，请稍后再试：' + response.msg);
-      } else {
-        // console.log(`消息发送成功: ${response.data.id}`);
-        // 服务端会通过实时通知更新消息状态，这里不需要额外操作
       }
     } catch (error) {
       // 标记消息为失败状态
@@ -261,14 +276,187 @@ const Conversation = () => {
           : msg
       ));
       
-      // console.error('发送消息出错:', error);
       Alert.alert('错误', '发送消息时出现问题：' + error.message);
     } finally {
       setSending(false);
     }
   };
   
-  // 返回按钮点击动画 - 重新实现
+  // 切换输入模式（文本/语音）
+  const toggleInputMode = () => {
+    setInputMode(prev => prev === 'text' ? 'audio' : 'text');
+  };
+  
+  // 开始录音
+  const startRecordingHandler = async () => {
+    try {
+      // 开始录音
+      const result = await startRecording();
+      
+      if (!result.success) {
+        Alert.alert('提示', result.error || '无法开始录音');
+        return;
+      }
+      
+      // 设置录音状态
+      setIsRecording(true);
+      setRecordingDuration(0);
+      setRecordingInstance(result.recording);
+      
+      // 开始计时
+      recordingTimer.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+      
+    } catch (error) {
+      console.error('录音失败:', error);
+      Alert.alert('错误', '开始录音时出现问题');
+    }
+  };
+  
+  // 停止录音并清理资源（不发送）
+  const stopRecordingCleanup = async () => {
+    // 清除计时器
+    if (recordingTimer.current) {
+      clearInterval(recordingTimer.current);
+      recordingTimer.current = null;
+    }
+    
+    // 停止录音实例
+    if (recordingInstance) {
+      try {
+        await recordingInstance.stopAndUnloadAsync();
+      } catch (error) {
+        console.error('停止录音失败:', error);
+      }
+    }
+    
+    // 重置状态
+    setRecordingInstance(null);
+    setIsRecording(false);
+    setRecordingDuration(0);
+  };
+  
+  // 停止录音并发送语音消息
+  const stopRecordingAndSend = async () => {
+    // 没有录音实例
+    if (!recordingInstance) {
+      stopRecordingCleanup();
+      return;
+    }
+    
+    try {
+      // 清除计时器
+      if (recordingTimer.current) {
+        clearInterval(recordingTimer.current);
+        recordingTimer.current = null;
+      }
+      
+      // 停止录音并获取文件URI
+      const result = await stopRecording(recordingInstance);
+      
+      if (!result.success) {
+        Alert.alert('提示', result.error || '录音失败');
+        stopRecordingCleanup();
+        return;
+      }
+      
+      // 如果录音时长太短（少于1秒），不发送
+      if (result.durationMillis < 1000) {
+        Alert.alert('提示', '录音时间太短');
+        stopRecordingCleanup();
+        return;
+      }
+      
+      // 生成唯一的临时ID
+      const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      
+      // 创建临时消息对象(用于立即显示)
+      const tempMessage = {
+        id: tempId,
+        conversation_id: conversationId,
+        senderId: user.id,
+        receiverId: userId,
+        content: '',
+        type: 'audio',
+        is_read: false,
+        audio_duration: Math.round(result.durationMillis / 1000),
+        media_url: result.uri, // 临时使用本地URI
+        created_at: new Date().toISOString(),
+        _isTemp: true
+      };
+      
+      // 先添加到本地显示
+      setMessages(prev => [...prev, tempMessage]);
+      
+      // 滚动到底部
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 50);
+      
+      // 上传音频文件
+      setSending(true);
+      const uploadResult = await uploadAudioFile(result.uri);
+      
+      if (!uploadResult.success) {
+        // 上传失败
+        setMessages(prev => prev.map(msg => 
+          msg.id === tempId 
+            ? { ...msg, _sendFailed: true } 
+            : msg
+        ));
+        
+        Alert.alert('提示', '语音上传失败: ' + (uploadResult.error || '未知错误'));
+        stopRecordingCleanup();
+        return;
+      }
+      
+      // 发送语音消息
+      const response = await sendAudioMessage(
+        conversationId,
+        user.id,
+        userId,
+        uploadResult.url,
+        result.durationMillis
+      );
+      
+      if (!response.success) {
+        // 发送失败
+        setMessages(prev => prev.map(msg => 
+          msg.id === tempId 
+            ? { ...msg, _sendFailed: true } 
+            : msg
+        ));
+        
+        Alert.alert('提示', '发送语音失败: ' + response.msg);
+      }
+      
+    } catch (error) {
+      console.error('处理语音消息失败:', error);
+      Alert.alert('错误', '处理语音消息时出现问题');
+    } finally {
+      setSending(false);
+      setRecordingInstance(null);
+      setIsRecording(false);
+      setRecordingDuration(0);
+    }
+  };
+  
+  // 处理音频播放状态变化
+  const handleAudioPlayStateChange = (messageId, isPlaying) => {
+    // 如果有其他正在播放的消息，先停止它
+    if (isPlaying && currentlyPlayingId && currentlyPlayingId !== messageId) {
+      // 通知之前的消息停止播放
+      setCurrentlyPlayingId(null);
+      // 短暂延迟后设置新的播放ID
+      setTimeout(() => {
+        setCurrentlyPlayingId(messageId);
+      }, 50);
+    } else {
+      setCurrentlyPlayingId(isPlaying ? messageId : null);
+    }
+  };
+  
   const animateBackButton = () => {
     // 标记按钮为按下状态（用于背景色）
     setIsBackButtonPressed(true);
@@ -295,7 +483,6 @@ const Conversation = () => {
     });
   };
   
-  // 返回上一页
   const handleGoBack = () => {
     // 立即取消可能干扰导航的订阅
     if (subscriptionRef.current) {
@@ -307,7 +494,7 @@ const Conversation = () => {
     router.replace('/(main)/messages');
   };
   
-  // 渲染消息项 - 完全重写以修复布局问题
+  // 渲染消息项
   const renderMessageItem = ({ item }) => {
     const isMyMessage = item.senderId === user.id;
     const isTempMessage = item._isTemp === true;
@@ -317,6 +504,44 @@ const Conversation = () => {
     const myAvatarUrl = user?.user_metadata?.avatar_url || user?.image;
     const otherAvatarUrl = otherUser?.image;
     
+    // 如果是语音消息
+    if (item.type === 'audio') {
+      return (
+        <View style={styles.messageRow}>
+          {!isMyMessage ? (
+            <View style={styles.otherMessageRow}>
+              <Avatar 
+                uri={otherAvatarUrl} 
+                size={36} 
+              />
+              
+              <AudioMessage 
+                audioUrl={item.media_url}
+                duration={item.audio_duration || 0}
+                isCurrentUser={false}
+                onPlayStateChange={(isPlaying) => handleAudioPlayStateChange(item.id, isPlaying)}
+              />
+            </View>
+          ) : (
+            <View style={styles.myMessageRow}>
+              <AudioMessage 
+                audioUrl={item.media_url}
+                duration={item.audio_duration || 0}
+                isCurrentUser={true}
+                onPlayStateChange={(isPlaying) => handleAudioPlayStateChange(item.id, isPlaying)}
+              />
+              
+              <Avatar 
+                uri={myAvatarUrl} 
+                size={36} 
+              />
+            </View>
+          )}
+        </View>
+      );
+    }
+    
+    // 文本消息
     return (
       <View style={styles.messageRow}>
         {/* 对方的消息 */}
@@ -374,6 +599,79 @@ const Conversation = () => {
             />
           </View>
         )}
+      </View>
+    );
+  };
+  
+  // 渲染输入区域
+  const renderInputArea = () => {
+    if (inputMode === 'audio') {
+      // 语音输入模式
+      return (
+        <View style={styles.inputContainer}>
+          {/* 切换到文本输入按钮 */}
+          <TouchableOpacity style={styles.modeToggleButton} onPress={toggleInputMode}>
+            <Icon name="keyboard" size={22} color={theme.colors.text} />
+          </TouchableOpacity>
+          
+          {/* 长按录音按钮 */}
+          <Pressable 
+            style={[
+              styles.voiceRecordButton,
+              isRecording && styles.voiceRecordButtonActive
+            ]}
+            onPressIn={startRecordingHandler}
+            onPressOut={stopRecordingAndSend}
+          >
+            <Text style={styles.voiceRecordText}>
+              {isRecording ? `录音中 ${recordingDuration}s` : '按住 说话'}
+            </Text>
+            <Icon 
+              name="mic" 
+              size={20} 
+              color={isRecording ? theme.colors.white : theme.colors.text} 
+            />
+          </Pressable>
+        </View>
+      );
+    }
+    
+    // 文本输入模式
+    return (
+      <View style={styles.inputContainer}>
+        {/* 切换到语音输入按钮 */}
+        <TouchableOpacity style={styles.modeToggleButton} onPress={toggleInputMode}>
+          <Icon name="mic" size={22} color={theme.colors.text} />
+        </TouchableOpacity>
+        
+        {/* 文本输入框 */}
+        <TextInput
+          style={styles.input}
+          placeholder="输入消息..."
+          placeholderTextColor={theme.colors.textLight}
+          value={inputMessage}
+          onChangeText={setInputMessage}
+          multiline
+        />
+        
+        {/* 发送按钮 */}
+        <TouchableOpacity
+          style={[
+            styles.sendButton, 
+            !inputMessage.trim() && styles.sendButtonDisabled
+          ]}
+          onPress={handleSendMessage}
+          disabled={!inputMessage.trim() || sending}
+          activeOpacity={0.8}
+        >
+          {sending ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <View style={styles.sendIconContainer}>
+              <Icon name="send" size={20} color="white" />
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
     );
   };
@@ -437,34 +735,8 @@ const Conversation = () => {
           />
         )}
         
-        {/* 底部输入框 */}
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="输入消息..."
-            placeholderTextColor={theme.colors.textLight}
-            value={inputMessage}
-            onChangeText={setInputMessage}
-            multiline
-          />
-          <TouchableOpacity
-            style={[
-              styles.sendButton, 
-              !inputMessage.trim() && styles.sendButtonDisabled
-            ]}
-            onPress={handleSendMessage}
-            disabled={!inputMessage.trim() || sending}
-            activeOpacity={0.8}
-          >
-            {sending ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <View style={styles.sendIconContainer}>
-                <Icon name="send" size={20} color="white" />
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
+        {/* 输入区域 */}
+        {renderInputArea()}
       </KeyboardAvoidingView>
     </ScreenWrapper>
   );
@@ -591,7 +863,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderTopWidth: 1,
     borderTopColor: 'rgba(0,0,0,0.05)',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     backgroundColor: 'white',
   },
   input: {
@@ -640,6 +912,34 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 8,
     bottom: 8,
+  },
+  
+  // 新增样式 - 语音输入相关
+  modeToggleButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  voiceRecordButton: {
+    flex: 1,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#f0f0f0',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  voiceRecordButtonActive: {
+    backgroundColor: theme.colors.primary,
+  },
+  voiceRecordText: {
+    fontSize: 16,
+    marginRight: 8,
+    color: theme.colors.text,
   },
 });
 
