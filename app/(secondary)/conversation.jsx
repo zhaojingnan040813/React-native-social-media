@@ -286,47 +286,69 @@ const Conversation = () => {
     router.replace('/(main)/messages');
   };
   
-  // 渲染消息项
+  // 渲染消息项 - 完全重写以修复布局问题
   const renderMessageItem = ({ item }) => {
     const isMyMessage = item.senderId === user.id;
     const isTempMessage = item._isTemp === true;
     const sendFailed = item._sendFailed === true;
     
+    // 获取用户头像URL
+    const myAvatarUrl = user?.user_metadata?.avatar_url || null;
+    
     return (
-      <View 
-        key={item.id} 
-        style={[
-          styles.messageContainer,
-          isMyMessage ? styles.myMessageContainer : styles.otherMessageContainer
-        ]}
-      >
-        {!isMyMessage && (
-          <Avatar source={null} size={36} style={styles.messageAvatar} />
-        )}
-        
-        <View style={[
-          styles.messageBubble,
-          isMyMessage ? styles.myMessageBubble : styles.otherMessageBubble,
-          isTempMessage && styles.tempMessageBubble,
-          sendFailed && styles.failedMessageBubble
-        ]}>
-          <Text style={[
-            styles.messageText,
-            isMyMessage ? styles.myMessageText : styles.otherMessageText
-          ]}>
-            {item.content}
-          </Text>
-          
-          {sendFailed && (
-            <Text style={styles.errorText}>发送失败</Text>
-          )}
-          
-          {isTempMessage && !sendFailed && (
-            <View style={styles.sendingIndicator}>
-              <ActivityIndicator size="small" color={isMyMessage ? "white" : theme.colors.textLight} />
+      <View style={styles.messageRow}>
+        {/* 对方的消息 */}
+        {!isMyMessage ? (
+          <View style={styles.otherMessageRow}>
+            <Avatar source={null} size={36} />
+            
+            <View style={[
+              styles.messageBubble,
+              styles.otherMessageBubble,
+              isTempMessage && styles.tempMessageBubble,
+              sendFailed && styles.failedMessageBubble
+            ]}>
+              <Text style={[styles.messageText, styles.otherMessageText]}>
+                {item.content}
+              </Text>
+              
+              {sendFailed && <Text style={styles.errorText}>发送失败</Text>}
+              
+              {isTempMessage && !sendFailed && (
+                <View style={styles.sendingIndicator}>
+                  <ActivityIndicator size="small" color={theme.colors.textLight} />
+                </View>
+              )}
             </View>
-          )}
-        </View>
+          </View>
+        ) : (
+          /* 我的消息 */
+          <View style={styles.myMessageRow}>
+            <View style={[
+              styles.messageBubble,
+              styles.myMessageBubble,
+              isTempMessage && styles.tempMessageBubble,
+              sendFailed && styles.failedMessageBubble
+            ]}>
+              <Text style={[styles.messageText, styles.myMessageText]}>
+                {item.content}
+              </Text>
+              
+              {sendFailed && <Text style={styles.errorText}>发送失败</Text>}
+              
+              {isTempMessage && !sendFailed && (
+                <View style={styles.sendingIndicator}>
+                  <ActivityIndicator size="small" color="white" />
+                </View>
+              )}
+            </View>
+            
+            <Avatar 
+              source={myAvatarUrl ? { uri: myAvatarUrl } : null} 
+              size={36} 
+            />
+          </View>
+        )}
       </View>
     );
   };
@@ -481,25 +503,28 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 8,
   },
-  messageContainer: {
+  messageRow: {
+    width: '100%',
+    marginBottom: 16,
+  },
+  otherMessageRow: {
     flexDirection: 'row',
-    marginBottom: 12,
+    alignItems: 'flex-end',
+    alignSelf: 'flex-start',
     maxWidth: '80%',
   },
-  myMessageContainer: {
+  myMessageRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
     alignSelf: 'flex-end',
-  },
-  otherMessageContainer: {
-    alignSelf: 'flex-start',
-  },
-  messageAvatar: {
-    marginRight: 8,
-    alignSelf: 'flex-end',
+    maxWidth: '80%',
   },
   messageBubble: {
     padding: 12,
     borderRadius: 16,
-    maxWidth: '100%',
+    maxWidth: '85%',
+    minWidth: 40,
+    marginHorizontal: 8,
   },
   myMessageBubble: {
     backgroundColor: theme.colors.primary,

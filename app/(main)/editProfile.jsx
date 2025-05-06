@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert, TouchableOpacity, Modal } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert, TouchableOpacity, Modal, ActivityIndicator } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { hp, wp } from '../../helpers/common'
 import { useAuth } from '../../contexts/AuthContext'
@@ -17,6 +17,8 @@ import Icon from '../../assets/icons'
 import Input from '../../components/Input'
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
+import { supabase } from '../../lib/supabase'
+import { supabaseUrl } from '../../constants'
 
 // 学院列表示例
 const COLLEGES = ['基础医学院', '临床医学院', '药学院', '护理学院', '公共卫生学院', '医学技术学院', '精神卫生学院', '医学影像学院', '口腔医学院'];
@@ -29,6 +31,7 @@ const EditProfile = () => {
   const router = useRouter();
   const [profileModal, toggleProfileModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showGenderSelection, setShowGenderSelection] = useState(false);
   const [showCollegeSelection, setShowCollegeSelection] = useState(false);
@@ -83,22 +86,86 @@ const EditProfile = () => {
   };
 
   const onPickImage = async () => {
-    // No permissions request is necessary for launching the image library
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.7,
-    });
+    try {
+      // 打开图库选择图片
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.7,
+      });
 
-    if (!result.canceled) {
-      setUser({...user, image: result.assets[0]});
+      if (result.canceled) return;
+      
+      // 立即开始上传头像
+      setUploadingAvatar(true);
+      
+      // 先更新本地UI显示选择的图片
+      const selectedImage = result.assets[0];
+      setUser(prev => ({...prev, image: selectedImage}));
+      
+      // 上传图片到Supabase
+      console.log('正在上传头像...');
+      let imageResult = await uploadFile('profiles', selectedImage.uri, true);
+      
+      if (imageResult.success) {
+        // 上传成功，获取图片路径
+        const imagePath = imageResult.data;
+        console.log('头像上传成功:', imagePath);
+        
+        // 构建完整的图片URL
+        const fullImageUrl = `${supabaseUrl}/storage/v1/object/public/uploads/${imagePath}`;
+        
+        // 更新用户Auth元数据中的avatar_url
+        const { error: metadataError } = await supabase.auth.updateUser({
+          data: { 
+            avatar_url: fullImageUrl,
+            name: user.name
+          }
+        });
+        
+        if (metadataError) {
+          console.log('更新用户元数据失败:', metadataError);
+          Alert.alert('提示', '头像元数据更新失败，部分功能可能无法正确显示头像');
+        } else {
+          console.log('用户元数据更新成功 - avatar_url已更新');
+        }
+        
+        // 更新数据库中的用户头像信息
+        const updateResult = await updateUser(currentUser.id, { image: imagePath });
+        
+        if (updateResult.success) {
+          // 更新全局状态中的用户信息
+          const updatedUserData = {...currentUser, image: imagePath};
+          setUserData(updatedUserData);
+          
+          // 更新本地状态
+          setUser(prev => ({...prev, image: imagePath}));
+          
+          Alert.alert('成功', '头像已更新');
+        } else {
+          console.log('更新用户头像失败:', updateResult.msg);
+          Alert.alert('提示', '头像信息保存失败，请稍后再试');
+        }
+      } else {
+        // 上传失败
+        console.log('头像上传失败:', imageResult.msg);
+        Alert.alert('提示', '头像上传失败，请稍后再试');
+        // 恢复原来的头像
+        setUser(prev => ({...prev, image: currentUser.image}));
+      }
+    } catch (error) {
+      console.error('头像上传错误:', error);
+      Alert.alert('错误', '头像处理过程中出现问题');
+      setUser(prev => ({...prev, image: currentUser.image}));
+    } finally {
+      setUploadingAvatar(false);
     }
   };
 
   const onSubmit = async () => {
     let userData = {...user};
-    let {name, phoneNumber, address, image, email} = userData;
+    let {name, phoneNumber, address, email} = userData;
     
     // 检查必填字段
     if(!name.trim()) {
@@ -118,20 +185,17 @@ const EditProfile = () => {
     setLoading(true);
     
     try {
-        // 如果是新选择的图片（对象类型），则需要上传
-        if(typeof image == 'object'){
-            console.log('正在上传图片...');
-            let imageResult = await uploadFile('profiles', image?.uri, true);
-            
-            if(imageResult.success) {
-                userData.image = imageResult.data;
-                console.log('图片上传成功:', imageResult.data);
-            } else {
-                // 上传失败但保留旧图片
-                console.log('图片上传失败:', imageResult.msg);
-                Alert.alert('提示', '头像上传失败，将保持原头像不变');
-                userData.image = currentUser.image;
-            }
+        // 头像已在选择时上传，此处不再重复处理
+        // 若用户选择了新头像但尚未上传完成，提示等待
+        if (uploadingAvatar) {
+          Alert.alert('提示', '头像正在上传中，请稍候再试');
+          setLoading(false);
+          return;
+        }
+        
+        // 如果用户选择了新头像(对象类型)但上传失败，使用原头像
+        if (typeof userData.image === 'object') {
+          userData.image = currentUser.image;
         }
         
         // 更新用户信息
@@ -194,12 +258,20 @@ const EditProfile = () => {
                           </View>
                         )}
                         
-                        <Pressable style={styles.cameraIcon} onPress={onPickImage}>
+                        <Pressable 
+                          style={styles.cameraIcon} 
+                          onPress={onPickImage}
+                          disabled={uploadingAvatar}
+                        >
+                          {uploadingAvatar ? (
+                            <ActivityIndicator color={theme.colors.primary} size="small" />
+                          ) : (
                             <Icon name="camera" strokeWidth={2.5} size={20} />
+                          )}
                         </Pressable>
                     </View>
                     <Text style={{fontSize: hp(1.5), color: theme.colors.text}}>
-                        请完善您的个人资料信息
+                        {uploadingAvatar ? '头像上传中...' : '请完善您的个人资料信息'}
                     </Text>
                     
                     {/* 基本信息 */}
@@ -478,7 +550,12 @@ const EditProfile = () => {
                     />
 
                     {/* 更新按钮 */}
-                    <Button title="更新" loading={loading} onPress={onSubmit} />
+                    <Button 
+                      title="更新其他信息" 
+                      loading={loading} 
+                      onPress={onSubmit} 
+                      disabled={uploadingAvatar}
+                    />
                 </View>
                     
             </ScrollView>
