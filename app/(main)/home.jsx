@@ -45,7 +45,6 @@ const HomeScreen = () => {
       // 如果组件已卸载，不处理事件
       if (!isMountedRef.current) return;
       
-      // console.log('got post event: ', payload);
       if (payload.eventType == 'INSERT' && payload?.new?.id) {
         let newPost = {...payload.new};
         let res = await getUserData(newPost.userId);
@@ -111,11 +110,19 @@ const HomeScreen = () => {
       isMountedRef.current = true;
       
       // 使用通道管理器获取或创建通道
-      const channel = channelManager.getOrCreateChannel('posts', null);
+      const postsChannel = channelManager.getOrCreateChannel('posts', null);
       
-      // 只添加事件处理程序，不再调用subscribe()方法，因为getOrCreateChannel已经在内部进行了订阅
-      channel
+      // 添加帖子变更事件监听
+      postsChannel
         .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, handlePostEvent);
+      
+      // 使用通道管理器获取或创建评论通道
+      const commentsChannel = channelManager.getOrCreateChannel('comments-home', null);
+      
+      // 添加评论变更事件监听
+      commentsChannel
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments' }, handleCommentInsert)
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'comments' }, handleCommentDelete);
 
       // 尝试从缓存加载，如果缓存不存在或过期，则获取新数据
       loadFromCache().then(cacheHit => {
@@ -130,6 +137,7 @@ const HomeScreen = () => {
         
         // 移除通道订阅
         channelManager.removeChannelSubscriber('posts');
+        channelManager.removeChannelSubscriber('comments-home');
         
         // 清除节流定时器
         if (throttleTimerRef.current) {
@@ -268,6 +276,149 @@ const HomeScreen = () => {
         throttle(getPosts);
       }
     };
+
+    // 处理评论添加事件
+    const handleCommentInsert = async (payload) => {
+      // 如果组件已卸载，不处理事件
+      if (!isMountedRef.current) return;
+      
+      const postId = payload.new?.postId;
+      
+      if (postId) {
+        // 获取该帖子的当前评论数
+        const { data: comments, error } = await supabase
+          .from('comments')
+          .select('id')
+          .eq('postId', postId);
+          
+        if (error) {
+          console.error('获取评论数量出错:', error);
+          return;
+        }
+        
+        const commentCount = comments?.length || 0;
+        
+        setPosts(prevPosts => {
+          return prevPosts.map(post => {
+            if (post.id === postId) {
+              // 设置最新的评论计数
+              return {
+                ...post,
+                comments: [{ count: commentCount }]
+              };
+            }
+            return post;
+          });
+        });
+      }
+    };
+    
+    // 处理评论删除事件
+    const handleCommentDelete = async (payload) => {
+      // 如果组件已卸载，不处理事件
+      if (!isMountedRef.current) return;
+      
+      const postId = payload.old?.postId;
+      
+      if (postId) {
+        // 获取该帖子的当前评论数
+        const { data: comments, error } = await supabase
+          .from('comments')
+          .select('id')
+          .eq('postId', postId);
+          
+        if (error) {
+          console.error('获取评论数量出错:', error);
+          return;
+        }
+        
+        const commentCount = comments?.length || 0;
+        
+        setPosts(prevPosts => {
+          return prevPosts.map(post => {
+            if (post.id === postId) {
+              // 设置最新的评论计数
+              return {
+                ...post,
+                comments: [{ count: commentCount }]
+              };
+            }
+            return post;
+          });
+        });
+      }
+    };
+
+    // 添加一个函数来更新所有帖子的评论计数
+    const updateCommentsCount = async () => {
+      if (!posts || posts.length === 0) return;
+      
+      try {
+        // 获取所有当前显示的帖子ID
+        const postIds = posts.map(post => post.id);
+        
+        // 从数据库获取最新的评论计数
+        const { data: comments, error: commentsError } = await supabase
+          .from('comments')
+          .select('postId')
+          .in('postId', postIds);
+          
+        if (commentsError) {
+          console.error('获取评论计数出错:', commentsError);
+          return;
+        }
+        
+        if (!comments || comments.length === 0) {
+          return;
+        }
+        
+        // 计算每个帖子的评论数
+        const countMap = {};
+        comments.forEach(comment => {
+          const postId = comment.postId;
+          countMap[postId] = (countMap[postId] || 0) + 1;
+        });
+        
+        // 更新帖子数据中的评论计数
+        setPosts(prevPosts => {
+          return prevPosts.map(post => {
+            const commentCount = countMap[post.id] || 0;
+            
+            // 仅当评论数量有变化时更新
+            const currentCount = post.comments?.[0]?.count || 0;
+            if (currentCount !== commentCount) {
+              return {
+                ...post,
+                comments: [{ count: commentCount }]
+              };
+            }
+            
+            return post;
+          });
+        });
+        
+      } catch (error) {
+        console.error('更新评论计数出错:', error);
+      }
+    };
+    
+    // 组件挂载和第一次加载完成后，更新评论计数
+    useEffect(() => {
+      if (posts.length > 0 && !isLoading && !refreshing) {
+        updateCommentsCount();
+      }
+    }, [posts.length, isLoading, refreshing]);
+    
+    // 定期更新评论计数
+    useEffect(() => {
+      const intervalId = setInterval(() => {
+        if (isMountedRef.current && posts.length > 0) {
+          updateCommentsCount();
+        }
+      }, 30000); // 每30秒更新一次
+      
+      return () => clearInterval(intervalId);
+    }, [posts.length]);
 
   return (
     <ScreenWrapper bg="white">

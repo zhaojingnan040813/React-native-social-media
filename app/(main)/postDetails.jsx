@@ -310,7 +310,10 @@ const PostDetails = () => {
                                 }
                                 ListHeaderComponent={<>
             <PostCard
-                item={post}
+                item={{
+                  ...post,
+                  comments: Array.isArray(post.comments) ? [{ count: post.comments.length }] : [{ count: 0 }]
+                }}
                 currentUser={user}
                 showMoreIcon={false}
                 router={router} 

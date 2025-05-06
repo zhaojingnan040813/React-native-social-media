@@ -358,7 +358,11 @@ const PostCard = ({
           </TouchableOpacity>
           <Text style={styles.count}>
             {
-              item?.comments[0]?.count
+              Array.isArray(item?.comments) 
+                ? (item.comments.length > 0 && typeof item.comments[0] === 'object' && 'count' in item.comments[0] 
+                  ? item.comments[0].count 
+                  : item.comments.length)
+                : 0
             }
           </Text>
         </View>
