@@ -103,13 +103,14 @@ const Conversation = () => {
             filter: `conversation_id=eq.${conversationId}`
           },
           (payload) => {
-            console.log('收到新消息通知:', payload);
+            console.log('收到新消息通知:', payload.new);
             
             // 添加新消息到列表，避免重复
             setMessages((prev) => {
-              // 检查消息是否已经存在（根据ID或临时消息内容匹配）
+              // 检查消息是否已经存在（根据ID、realId或临时消息内容匹配）
               const exists = prev.some(msg => 
                 msg.id === payload.new.id || 
+                msg._realId === payload.new.id ||
                 (msg._isTemp && 
                  msg.senderId === payload.new.senderId && 
                  msg.content === payload.new.content &&
@@ -123,10 +124,15 @@ const Conversation = () => {
                       msg.senderId === payload.new.senderId && 
                       msg.content === payload.new.content &&
                       Math.abs(new Date(msg.created_at) - new Date(payload.new.created_at)) < 60000) {
-                    return { ...payload.new, _replaced: true };
+                    return { 
+                      ...payload.new, 
+                      _replaced: true,
+                      id: msg.id, // 保留原始ID以避免UI跳跃
+                      _realId: payload.new.id 
+                    };
                   }
                   return msg;
-                }).filter(msg => msg.id !== payload.new.id || !msg._replaced);
+                });
               }
               
               return [...prev, payload.new];
@@ -153,7 +159,7 @@ const Conversation = () => {
             setMessages((prev) => {
               // 检查是否已经应用了这个更新
               const alreadyUpdated = prev.some(msg => 
-                msg.id === payload.new.id && 
+                (msg.id === payload.new.id || msg._realId === payload.new.id) && 
                 msg.is_read === payload.new.is_read
               );
               
@@ -162,7 +168,9 @@ const Conversation = () => {
               }
               
               return prev.map(msg => 
-                msg.id === payload.new.id ? payload.new : msg
+                (msg.id === payload.new.id || msg._realId === payload.new.id) 
+                  ? {...payload.new, id: msg.id, _realId: payload.new.id} // 保留原有ID
+                  : msg
               );
             });
           }
@@ -187,6 +195,10 @@ const Conversation = () => {
       return;
     }
     
+    // 保存消息内容，清空输入框
+    const messageContent = inputMessage.trim();
+    setInputMessage('');
+    
     // 生成唯一的临时ID
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     
@@ -196,7 +208,7 @@ const Conversation = () => {
       conversation_id: conversationId,
       senderId: user.id,
       receiverId: userId,
-      content: inputMessage.trim(),
+      content: messageContent,
       is_read: false,
       created_at: new Date().toISOString(),
       // 添加临时标记
@@ -205,9 +217,6 @@ const Conversation = () => {
     
     // 先添加到本地显示
     setMessages(prev => [...prev, tempMessage]);
-    
-    // 清空输入框
-    setInputMessage('');
     
     // 滚动到底部
     setTimeout(() => {
@@ -221,14 +230,51 @@ const Conversation = () => {
         conversationId,
         user.id,
         userId,
-        tempMessage.content
+        messageContent
       );
       
       if (response.success) {
+        console.log('消息发送成功:', response.data);
+        
         // 用实际消息替换临时消息
-        setMessages(prev => prev.map(msg => 
-          msg.id === tempId ? { ...response.data, _isTemp: false } : msg
-        ));
+        setMessages(prev => {
+          return prev.map(msg => {
+            // 匹配临时消息ID或内容+时间相似的临时消息
+            if (msg.id === tempId || 
+               (msg._isTemp && 
+                msg.senderId === user.id && 
+                msg.content === messageContent)) {
+              // 返回服务器消息，但保留原始ID以避免列表重新渲染时的跳动
+              return { 
+                ...response.data, 
+                _isTemp: false,
+                id: msg.id, // 保留临时ID
+                _realId: response.data.id // 存储真实ID
+              };
+            }
+            return msg;
+          });
+        });
+        
+        // 添加额外的确认步骤，确保消息已添加
+        setTimeout(() => {
+          setMessages(prev => {
+            // 检查消息是否已存在（通过realId或消息内容）
+            const exists = prev.some(msg => 
+              (msg._realId && msg._realId === response.data.id) || 
+              (msg.id === response.data.id) ||
+              (!msg._isTemp && msg.senderId === user.id && msg.content === messageContent && 
+               Math.abs(new Date(msg.created_at) - new Date(response.data.created_at)) < 10000)
+            );
+            
+            if (!exists) {
+              console.log('消息未被正确添加，添加服务器返回消息');
+              return [...prev, response.data];
+            }
+            return prev;
+          });
+        }, 500);
+        
       } else {
         // 发送失败，标记消息为失败状态
         setMessages(prev => prev.map(msg => 
