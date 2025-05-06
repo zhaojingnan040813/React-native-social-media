@@ -112,8 +112,8 @@ function RootLayoutNav({ isConnected }) {
         android_keyboardInputMode: 'adjustPan',
       }} />
       <Stack.Screen name="welcome" />
-      <Stack.Screen name="(auth)/login" options={{headerShown: false, animation: 'fade'}} />
-      <Stack.Screen name="(auth)/register" options={{headerShown: false, animation: 'fade'}} />
+      <Stack.Screen name="login" options={{headerShown: false, animation: 'fade'}} />
+      <Stack.Screen name="signUp" options={{headerShown: false, animation: 'fade'}} />
       <Stack.Screen name="index" options={{ redirect: true }} />
     </Stack>
   )
