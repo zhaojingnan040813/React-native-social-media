@@ -97,12 +97,12 @@ const MessageSyncManager = ({ children, onConnectionChange }) => {
   // 重新连接实时通道
   const reconnectRealtimeChannels = () => {
     try {
-      console.log('尝试重新连接实时通道...');
+      // console.log('尝试重新连接实时通道...');
       
       // 重新连接实时通道
       supabase.realtime.connect();
       
-      console.log('实时通道重连成功');
+      // console.log('实时通道重连成功');
     } catch (error) {
       console.error('重新连接实时通道失败:', error);
     }

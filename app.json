@@ -23,7 +23,9 @@
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.zhaojingnan.supasocialapp"
+      "package": "com.zhaojingnan.supasocialapp",
+      "softwareKeyboardLayoutMode": "pan",
+      "windowSoftInputMode": "adjustPan"
     },
     "web": {
       "bundler": "metro",

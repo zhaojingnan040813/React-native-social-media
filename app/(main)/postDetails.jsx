@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Pressable, Keyboard, Platform, RefreshControl } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Pressable, Keyboard, Platform, RefreshControl, InputAccessoryView } from 'react-native'
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import PostCard from '../../components/PostCard'
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -13,7 +13,7 @@ import CommentItem from '../../components/CommentItem';
 import { getUserData } from '../../services/userService';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
-import { createNotification } from '../../services/notificationService';
+import { createNotification, createCommentNotification } from '../../services/notificationService';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Header from '../../components/Header';
 import { FlatList } from 'react-native-gesture-handler';
@@ -26,9 +26,8 @@ const PostDetails = () => {
     const params = useLocalSearchParams();
     const postId = params.postId;
     const timestamp = params.t;
-
-    // console.log(`正在加载帖子详情，ID: ${postId}，时间戳: ${timestamp}`);
-
+    const inputAccessoryViewID = "commentInput";
+    
     const [post, setPost] = useState(null);
     const router = useRouter();
     const [loading, setLoading] = useState(false);
@@ -40,12 +39,34 @@ const PostDetails = () => {
     const [comment, setComment] = useState(''); 
     const [sending, setSending] = useState(false);
     const [showDelete, setShowDelete] = useState(false);
+    const [keyboardVisible, setKeyboardVisible] = useState(false);
     
     // 使用ref跟踪组件是否已卸载
     const isMountedRef = useRef(true);
     
     // 获取特定帖子的缓存键
     const getCacheKey = (id) => `${POST_DETAILS_CACHE_PREFIX}${id}`;
+    
+    // 监听键盘事件
+    useEffect(() => {
+      const keyboardDidShowListener = Keyboard.addListener(
+        'keyboardDidShow',
+        () => {
+          setKeyboardVisible(true);
+        }
+      );
+      const keyboardDidHideListener = Keyboard.addListener(
+        'keyboardDidHide',
+        () => {
+          setKeyboardVisible(false);
+        }
+      );
+  
+      return () => {
+        keyboardDidShowListener.remove();
+        keyboardDidHideListener.remove();
+      };
+    }, []);
 
     const handleNewComment = async payload => {
         // 如果组件已卸载，不处理事件
@@ -195,14 +216,16 @@ const PostDetails = () => {
         
         setSending(false);
         if (res.success) {
-            if (user.id != post.userId) {
-                let notify = {
-                    senderId: user.id,
-                    receiverId: post.userId,
-                    title: 'commented on your post',
-                    data: JSON.stringify({postId: post.id, commentId: res?.data?.id})
-                }
-                createNotification(notify);
+            // 如果发表评论的用户不是帖子作者，创建评论通知
+            if (user.id !== post.userId) {
+                // 使用新的通知服务创建评论通知
+                await createCommentNotification(
+                    user.id,           // 评论者ID
+                    post.userId,       // 帖子作者ID
+                    post.id,           // 帖子ID
+                    res?.data?.id,     // 评论ID
+                    comment.trim()     // 评论内容
+                );
             }
 
             setComment('');
@@ -281,7 +304,7 @@ const PostDetails = () => {
     
   return (
     <ScreenWrapper bg="white">
-    <View style={styles.container}>
+      <View style={styles.container}>
             <Header title="帖子详情" />
             {
                 loading? (
@@ -291,40 +314,43 @@ const PostDetails = () => {
                 ): (
                     post && (
                         <KeyboardAvoidingView
-                            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                            style={{flex: 1}}
+                          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                          style={{flex: 1}}
+                          keyboardVerticalOffset={Platform.OS === 'ios' ? hp(10) : 0}
                         >
                             <FlatList
                                 data={post?.comments || []}
-                                contentContainerStyle={{gap: 10, paddingBottom: 30}}
+                                contentContainerStyle={{
+                                  gap: 10, 
+                                  paddingBottom: keyboardVisible ? hp(25) : hp(16) // 根据键盘状态动态调整
+                                }}
                                 showsVerticalScrollIndicator={true}
+                                keyboardShouldPersistTaps="handled"
                                 refreshControl={
                                     <RefreshControl
                                         refreshing={refreshing}
                                         onRefresh={onRefresh}
-                                        colors={[theme.colors.primary]} // Android
-                                        tintColor={theme.colors.primary} // iOS
-                                        title="下拉刷新" // iOS
-                                        titleColor={theme.colors.textLight} // iOS
+                                        colors={[theme.colors.primary]}
+                                        tintColor={theme.colors.primary}
+                                        title="下拉刷新"
+                                        titleColor={theme.colors.textLight}
                                     />
                                 }
                                 ListHeaderComponent={<>
-            <PostCard
-                item={{
-                  ...post,
-                  comments: Array.isArray(post.comments) ? [{ count: post.comments.length }] : [{ count: 0 }]
-                }}
-                currentUser={user}
-                showMoreIcon={false}
-                router={router} 
-                showDelete={true}
-                onDelete={onDeletePost}
-                onEdit={onEditPost}
-            />
-                                    <View style={styles.divider} />
-
-                                    <Text style={styles.subtitle}>评论</Text>
-
+                                  <PostCard
+                                      item={{
+                                        ...post,
+                                        comments: Array.isArray(post.comments) ? [{ count: post.comments.length }] : [{ count: 0 }]
+                                      }}
+                                      currentUser={user}
+                                      showMoreIcon={false}
+                                      router={router} 
+                                      showDelete={true}
+                                      onDelete={onDeletePost}
+                                      onEdit={onEditPost}
+                                  />
+                                  <View style={styles.divider} />
+                                  <Text style={styles.subtitle}>评论</Text>
                                 </>}
                                 renderItem={({item})=> <CommentItem 
                                     item={item} 
@@ -334,9 +360,12 @@ const PostDetails = () => {
                                 keyExtractor={(item, idx)=> item?.id?.toString()}
                             />
 
-
-            {/* comment input */}
-                            <View style={styles.commentInput}>
+                            {/* 使用绝对定位保证输入框悬浮在底部导航栏上方 */}
+                            <View style={[
+                              styles.inputContainer, 
+                              { bottom: Platform.OS === 'ios' ? (keyboardVisible ? hp(35) : hp(8)) : hp(8) }
+                            ]}>
+                              <View style={styles.commentInput}>
                                 <TextInput 
                                     placeholder='写下您的评论...'
                                     style={styles.input}
@@ -346,25 +375,40 @@ const PostDetails = () => {
                                         commentRef.current = val;
                                     }}
                                     ref={inputRef}
-                />
+                                    inputAccessoryViewID={Platform.OS === 'ios' ? inputAccessoryViewID : undefined}
+                                />
                                 {
                                     sending? (
                                         <View style={styles.sendButton}>
-                            <Loading size="small" />
-                        </View>
+                                            <Loading size="small" />
+                                        </View>
                                     ): (
                                         <Pressable style={styles.sendButton} onPress={onNewComment}>
                                             <Icon name="send" size={hp(3)} color={comment? theme.colors.primary: theme.colors.textLight} />
                                         </Pressable>
-                    )
-                }
-                
-            </View>
+                                    )
+                                }
+                              </View>
+                            </View>
+                            
+                            {/* 为iOS添加输入辅助视图 */}
+                            {Platform.OS === 'ios' && (
+                              <InputAccessoryView nativeID={inputAccessoryViewID}>
+                                <View style={styles.inputAccessory}>
+                                  <TouchableOpacity 
+                                    style={styles.doneButton} 
+                                    onPress={() => Keyboard.dismiss()}
+                                  >
+                                    <Text style={styles.doneButtonText}>完成</Text>
+                                  </TouchableOpacity>
+                                </View>
+                              </InputAccessoryView>
+                            )}
                         </KeyboardAvoidingView>
                     )
-                    )
-                }
-            </View>
+                )
+            }
+        </View>
     </ScreenWrapper>
   )
 }
@@ -387,6 +431,13 @@ const styles = StyleSheet.create({
         marginTop: 20,
         marginBottom: 15,
     },
+    inputContainer: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        backgroundColor: 'transparent',
+        zIndex: 1000,
+    },
     commentInput: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -395,7 +446,9 @@ const styles = StyleSheet.create({
         gap: 10,
         paddingHorizontal: 10,
         borderTopWidth: 1,
-        borderTopColor: theme.colors.gray
+        borderTopColor: theme.colors.gray,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.colors.gray,
     },
     input: {
         flex: 1,
@@ -431,6 +484,24 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         transform: [{scale: 1.3}]
+    },
+    inputAccessory: {
+        height: 45,
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        backgroundColor: '#f1f1f1',
+        borderTopWidth: 1,
+        borderTopColor: '#e0e0e0',
+        paddingHorizontal: 10,
+    },
+    doneButton: {
+        padding: 10,
+    },
+    doneButtonText: {
+        color: theme.colors.primary,
+        fontSize: 16,
+        fontWeight: 'bold',
     }
 })
 

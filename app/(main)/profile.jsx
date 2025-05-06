@@ -2,9 +2,10 @@ import { View, Text, StyleSheet, ScrollView, Pressable, TouchableOpacity, Alert 
 import React, { useState, useEffect, useCallback } from 'react'
 import { hp, wp } from '../../helpers/common'
 import { useAuth } from '../../contexts/AuthContext'
+import { useNotification } from '../../contexts/NotificationContext'
 import { theme } from '../../constants/theme'
 import { Feather, Ionicons, SimpleLineIcons, FontAwesome5 } from '@expo/vector-icons'
-import { useRouter } from 'expo-router'
+import { useRouter, useFocusEffect } from 'expo-router'
 import { getUserImageSrc } from '../../services/imageService'
 import { Image } from 'expo-image';
 import Header from '../../components/Header'
@@ -16,6 +17,18 @@ import moment from 'moment'
 const Profile = () => {
   const {user, logout} = useAuth();
   const router = useRouter();
+  // 使用通知上下文获取未读通知数量
+  const { unreadCount, fetchUnreadCount } = useNotification();
+  
+  // 页面每次获得焦点时刷新未读通知数量
+  useFocusEffect(
+    useCallback(() => {
+      if (user?.id) {
+        fetchUnreadCount();
+      }
+      return () => {};
+    }, [user?.id])
+  );
   
   const onLogout = async () => {
     const result = await logout();
@@ -66,7 +79,7 @@ const Profile = () => {
   // 特性列表数据
   const features = [
     { id: 1, title: '我的帖子', icon: 'document-text', color: '#4ab1fa' },
-    { id: 2, title: '消息通知', icon: 'notifications', color: '#4cd964' },
+    { id: 2, title: '消息通知', icon: 'notifications', color: '#4cd964', badge: unreadCount },
     { id: 3, title: '我的收藏', icon: 'bookmark', color: '#ffcc00' },
     { id: 4, title: '浏览历史', icon: 'time', color: '#34aadc' },
     { id: 5, title: '帮助与反馈', icon: 'help-circle', color: '#ff9500' },
@@ -190,6 +203,14 @@ const Profile = () => {
                   >
                     <View style={[styles.featureIconContainer, { backgroundColor: feature.color + '20' }]}>
                       <Ionicons name={feature.icon} size={24} color={feature.color} />
+                      {/* 显示未读通知数量徽标 */}
+                      {feature.badge > 0 && (
+                        <View style={styles.badgeContainer}>
+                          <Text style={styles.badgeText}>
+                            {feature.badge > 99 ? '99+' : feature.badge}
+                          </Text>
+                        </View>
+                      )}
                     </View>
                     <Text style={styles.featureText}>{feature.title}</Text>
                     <Ionicons name="chevron-forward" size={18} color={theme.colors.gray} />
@@ -300,31 +321,27 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   featuresContainer: {
-    marginTop: 20,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    marginTop: 10,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 15,
+    overflow: 'hidden',
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 15,
-    paddingHorizontal: 10,
-    borderBottomWidth: 0.5,
-    borderBottomColor: theme.colors.gray + '30',
+    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   featureIconContainer: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 15,
+    position: 'relative',
   },
   featureText: {
     flex: 1,
@@ -335,16 +352,32 @@ const styles = StyleSheet.create({
   logoutBtn: {
     marginTop: 20,
     backgroundColor: '#fee2e2',
-    paddingVertical: 15,
+    paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',
-    marginBottom: 20,
   },
   logoutBtnText: {
-    color: theme.colors.rose,
+    color: '#ef4444',
     fontWeight: '600',
     fontSize: hp(1.8),
   },
-})
+  badgeContainer: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: 'red',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 5,
+  },
+  badgeText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+});
 
-export default Profile
+export default Profile;

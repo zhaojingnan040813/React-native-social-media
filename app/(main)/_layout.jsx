@@ -1,5 +1,5 @@
-import { View, Text, StyleSheet, Pressable, BackHandler, Alert } from 'react-native'
-import React, { useEffect } from 'react'
+import { View, Text, StyleSheet, Pressable, BackHandler, Alert, KeyboardAvoidingView, Platform, Keyboard } from 'react-native'
+import React, { useEffect, useState } from 'react'
 import { Tabs, useRouter, usePathname, Redirect } from 'expo-router'
 import { theme } from '../../constants/theme'
 import Icon from '../../assets/icons'
@@ -31,6 +31,28 @@ export default function MainLayout() {
   const { user, isLoading, sessionValid } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  
+  // 监听键盘事件
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      () => {
+        setKeyboardVisible(true);
+      }
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        setKeyboardVisible(false);
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
   
   // 判断是否是主页面（一级路由），这些是应用的主要tab页面
   const isMainRoute = () => {
@@ -97,71 +119,95 @@ export default function MainLayout() {
     return <Redirect href="/login" />;
   }
 
+  // 定义动态样式，确保底部导航栏保持在底部
+  const tabBarStyle = {
+    ...styles.tabBar,
+    // 无论键盘状态如何，始终显示在底部
+    position: 'absolute',  
+    bottom: 0,
+    height: hp(7),
+    zIndex: 9999, // 使用非常高的z-index
+  };
+
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.textLight,
-      }}
-    >
-      <Tabs.Screen 
-        name="home" 
-        options={{
-          title: '首页',
-          tabBarIcon: ({ color }) => <Icon name="home" size={24} color={color} />
+    <View style={styles.container}>
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarStyle: tabBarStyle,
+          tabBarActiveTintColor: theme.colors.primary,
+          tabBarInactiveTintColor: theme.colors.textLight,
+          tabBarHideOnKeyboard: false, // 设置为false，使键盘不会隐藏底部导航栏
+          // 关闭Android上的adjustNothing键盘模式
+          android_keyboardInputMode: 'adjustPan', // 特定于Android的属性，使用adjustPan避免顶起底部导航
+          keyboardShouldPersistTaps: 'always',
         }}
-      />
-      <Tabs.Screen 
-        name="schedule" 
-        options={{
-          title: '课表',
-          tabBarIcon: ({ color }) => <Icon name="calendar" size={24} color={color} />
-        }}
-      />
-      <Tabs.Screen 
-        name="publish" 
-        options={{
-          tabBarButton: (props) => <PublishTabButton {...props} />, // 2. 使用 tabBarButton 选项
-        }}
-      />
-      <Tabs.Screen 
-        name="messages" 
-        options={{
-          title: '私信',
-          tabBarIcon: ({ color }) => <Icon name="mail" size={24} color={color} />
-        }}
-      />
-      <Tabs.Screen 
-        name="profile" 
-        options={{
-          title: '我的',
-          tabBarIcon: ({ color }) => <Icon name="user" size={24} color={color} />
-        }}
-      />
-      <Tabs.Screen name="postDetails" options={{ href: null, tabBar: () => null }} />
-      <Tabs.Screen name="newPost" options={{ href: null, tabBar: () => null }} />
-      <Tabs.Screen name="editProfile" options={{ href: null, tabBar: () => null }} />
-      <Tabs.Screen name="notifications" options={{ href: null, tabBar: () => null }} />
-      <Tabs.Screen name="search" options={{ href: null, tabBar: () => null }} />
-      <Tabs.Screen name="myPosts" options={{ href: null, tabBar: () => null }} />
-      <Tabs.Screen name="myBookmarks" options={{ href: null, tabBar: () => null }} />
-      <Tabs.Screen name="aboutAuthor" options={{ href: null, tabBar: () => null }} />
-    </Tabs>
+      >
+        <Tabs.Screen 
+          name="home" 
+          options={{
+            title: '首页',
+            tabBarIcon: ({ color }) => <Icon name="home" size={24} color={color} />
+          }}
+        />
+        <Tabs.Screen 
+          name="schedule" 
+          options={{
+            title: '课表',
+            tabBarIcon: ({ color }) => <Icon name="calendar" size={24} color={color} />
+          }}
+        />
+        <Tabs.Screen 
+          name="publish" 
+          options={{
+            tabBarButton: (props) => <PublishTabButton {...props} />, // 2. 使用 tabBarButton 选项
+          }}
+        />
+        <Tabs.Screen 
+          name="messages" 
+          options={{
+            title: '私信',
+            tabBarIcon: ({ color }) => <Icon name="mail" size={24} color={color} />
+          }}
+        />
+        <Tabs.Screen 
+          name="profile" 
+          options={{
+            title: '我的',
+            tabBarIcon: ({ color }) => <Icon name="user" size={24} color={color} />
+          }}
+        />
+        <Tabs.Screen name="postDetails" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+        <Tabs.Screen name="newPost" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+        <Tabs.Screen name="editProfile" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+        <Tabs.Screen name="notifications" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+        <Tabs.Screen name="search" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+        <Tabs.Screen name="myPosts" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+        <Tabs.Screen name="myBookmarks" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+        <Tabs.Screen name="aboutAuthor" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+      </Tabs>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    position: 'relative',
+  },
   tabBar: {
-    height: hp(7),
     paddingBottom: hp(1),
     paddingTop: hp(0.5),
     flexDirection: 'row',
     justifyContent: 'space-around',
     borderTopWidth: 1,
     borderTopColor: theme.colors.gray,
-    backgroundColor: '#fff'
+    backgroundColor: '#fff',
+    elevation: 8, // 为Android添加阴影
+    shadowColor: '#000', // iOS阴影
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   publishButton: {
     width: wp(12),

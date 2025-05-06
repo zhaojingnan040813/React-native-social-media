@@ -2,6 +2,7 @@ import { View, Text, LogBox } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { Stack, useRouter } from 'expo-router'
 import { AuthProvider, useAuth } from '../contexts/AuthContext'
+import { NotificationProvider } from '../contexts/NotificationContext'
 import { supabase } from '../lib/supabase'
 import { getUserData } from '../services/userService'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
@@ -28,7 +29,7 @@ try {
   cleanupAllChannels();
   // console.log('已清理所有现有实时通道');
 } catch (error) {
-  console.error('清理通道失败:', error);
+  // console.error('清理通道失败:', error);
 }
 
 const _layout = () => {
@@ -47,9 +48,11 @@ const _layout = () => {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
-        <MessageSyncManager onConnectionChange={handleConnectionChange}>
-          <RootLayoutNav isConnected={isConnected} />
-        </MessageSyncManager>
+        <NotificationProvider>
+          <MessageSyncManager onConnectionChange={handleConnectionChange}>
+            <RootLayoutNav isConnected={isConnected} />
+          </MessageSyncManager>
+        </NotificationProvider>
       </AuthProvider>
     </GestureHandlerRootView>
   )
@@ -85,18 +88,32 @@ function RootLayoutNav({ isConnected }) {
         // 清理所有实时通道
         cleanupAllChannels();
       } catch (error) {
-        console.error('应用关闭时清理失败:', error);
+        // console.error('应用关闭时清理失败:', error);
       }
     };
   }, []);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(main)" />
-      <Stack.Screen name="(secondary)" />
+      <Stack.Screen name="(main)" options={{
+        headerShown: false,
+        animation: 'fade',
+        gestureEnabled: false,
+        tabBarHideOnKeyboard: false,
+        tabBarStyle: { position: 'absolute', zIndex: 999999 },
+        android_keyboardInputMode: 'adjustPan',
+      }} />
+      <Stack.Screen name="(secondary)" options={{
+        headerShown: false,
+        animation: 'slide_from_right',
+        gestureEnabled: true,
+        tabBarHideOnKeyboard: false,
+        tabBarStyle: { position: 'absolute', zIndex: 999999 },
+        android_keyboardInputMode: 'adjustPan',
+      }} />
       <Stack.Screen name="welcome" />
-      <Stack.Screen name="login" />
-      <Stack.Screen name="signUp" />
+      <Stack.Screen name="(auth)/login" options={{headerShown: false, animation: 'fade'}} />
+      <Stack.Screen name="(auth)/register" options={{headerShown: false, animation: 'fade'}} />
       <Stack.Screen name="index" options={{ redirect: true }} />
     </Stack>
   )

@@ -13,6 +13,7 @@ import { Share } from 'react-native';
 import Loading from './Loading';
 import Avatar from './Avatar';
 import { addBookmark, isPostBookmarked, removeBookmark } from '../services/bookmarkService';
+import { createLikeNotification } from '../services/notificationService';
 
 const textStyle = {
   color: theme.colors.dark,
@@ -112,16 +113,18 @@ const PostCard = ({
     checkBookmarkStatus();
   },[]);
 
-  const onLike = async ()=>{
-    if(liked){
-      let updatedLikes = likes.filter(like=> like.userId!=currentUser?.id);
+  const onLike = async () => {
+    if (liked) {
+      // 取消点赞
+      let updatedLikes = likes.filter(like => like.userId != currentUser?.id);
       setLikes([...updatedLikes]);
 
       let res = await removePostLike(item?.id, currentUser?.id);
-      if(!res.success){
+      if (!res.success) {
         Alert.alert('帖子', '出现了问题！')
       }
-    }else{
+    } else {
+      // 添加点赞
       let data = {
         userId: currentUser?.id,
         postId: item?.id,
@@ -129,7 +132,17 @@ const PostCard = ({
 
       setLikes([...likes, data]);
       let res = await createPostLike(data);
-      if(!res.success){
+      if (res.success) {
+        // 如果不是给自己的帖子点赞，则创建通知
+        if (currentUser?.id !== item?.userId) {
+          // 创建点赞通知
+          await createLikeNotification(
+            currentUser?.id,  // 点赞者ID
+            item?.userId,     // 帖子作者ID
+            item?.id          // 帖子ID
+          );
+        }
+      } else {
         Alert.alert('帖子', '出现了问题！')
       }
     }
