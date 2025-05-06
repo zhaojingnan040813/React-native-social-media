@@ -8,7 +8,10 @@ import {
   KeyboardAvoidingView, 
   Platform, 
   ActivityIndicator,
-  Alert
+  Alert,
+  TouchableWithoutFeedback,
+  InteractionManager,
+  Animated
 } from 'react-native';
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -35,6 +38,11 @@ const Conversation = () => {
   const flatListRef = useRef(null);
   const subscriptionRef = useRef(null);
   const messageCache = useRef(new Set()).current; // 消息ID缓存，用于客户端去重
+  
+  // 分离原生动画和JS动画值
+  const backButtonScale = useRef(new Animated.Value(1)).current;
+  // 不再使用动画的背景色，改为静态变化
+  const [isBackButtonPressed, setIsBackButtonPressed] = useState(false);
   
   // 加载消息并订阅实时更新
   useEffect(() => {
@@ -239,9 +247,43 @@ const Conversation = () => {
     }
   };
   
+  // 返回按钮点击动画 - 重新实现
+  const animateBackButton = () => {
+    // 标记按钮为按下状态（用于背景色）
+    setIsBackButtonPressed(true);
+    
+    // 缩放动画 - 只使用原生驱动
+    Animated.sequence([
+      // 缩小 - 缩放比例更大
+      Animated.timing(backButtonScale, {
+        toValue: 0.85,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      // 恢复
+      Animated.timing(backButtonScale, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      })
+    ]).start(() => {
+      // 动画完成后延迟一点时间再执行返回操作
+      setTimeout(() => {
+        handleGoBack();
+      }, 50);
+    });
+  };
+  
   // 返回上一页
   const handleGoBack = () => {
-    router.back();
+    // 立即取消可能干扰导航的订阅
+    if (subscriptionRef.current) {
+      subscriptionRef.current.unsubscribe();
+      subscriptionRef.current = null;
+    }
+
+    // 使用更明确的导航方式
+    router.replace('/(main)/messages');
   };
   
   // 渲染消息项
@@ -294,13 +336,32 @@ const Conversation = () => {
       {/* 头部 */}
       <View style={styles.header}>
         <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={handleGoBack}
+          style={styles.backButtonWrapper}
+          onPress={animateBackButton}
+          onPressIn={() => setIsBackButtonPressed(true)}
+          onPressOut={() => setIsBackButtonPressed(false)}
           activeOpacity={0.7}
+          delayPressIn={0}
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
         >
-          <View style={styles.backButtonContainer}>
-            <Icon name="arrowLeft" size={22} color={theme.colors.primary} />
-          </View>
+          <Animated.View 
+            style={[
+              styles.backButtonContainer,
+              {
+                transform: [{ scale: backButtonScale }],
+                backgroundColor: isBackButtonPressed ? '#cce5ff' : '#f0f8ff',
+                borderWidth: isBackButtonPressed ? 2 : 1,
+                borderColor: isBackButtonPressed ? theme.colors.primary : 'rgba(0,0,0,0.05)',
+                elevation: isBackButtonPressed ? 4 : 2,
+              }
+            ]}
+          >
+            <Icon 
+              name="arrowLeft" 
+              size={22} 
+              color={isBackButtonPressed ? theme.colors.primary : theme.colors.text} 
+            />
+          </Animated.View>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{userName || '对话'}</Text>
         <View style={styles.headerRight} />
@@ -380,18 +441,25 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 1,
   },
-  backButton: {
-    padding: 2,
+  backButtonWrapper: {
+    padding: 12,
+    marginLeft: -10,
+    marginRight: 6,
   },
   backButtonContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#f0f8ff',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.05)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
   headerTitle: {
     flex: 1,
