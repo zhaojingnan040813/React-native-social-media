@@ -668,35 +668,35 @@ const Conversation = () => {
     );
   };
   
-  // 渲染输入区域
+  // 渲染输入区域（语音或文本）
   const renderInputArea = () => {
+    // 语音输入模式
     if (inputMode === 'audio') {
-      // 语音输入模式
       return (
         <View style={styles.inputContainer}>
           {/* 切换到文本输入按钮 */}
           <TouchableOpacity 
             style={styles.modeToggleButton} 
             onPress={toggleInputMode}
-            disabled={isRecording || sending}
+            activeOpacity={0.7}
           >
             <Icon name="keyboard" size={22} color={theme.colors.text} />
           </TouchableOpacity>
           
-          {/* 长按录音按钮 */}
-          <Pressable 
+          {/* 录音按钮 */}
+          <Pressable
             style={[
               styles.voiceRecordButton,
-              isRecording && styles.voiceRecordButtonActive,
-              sending && styles.voiceRecordButtonDisabled
+              isRecording && styles.voiceRecordButtonActive
             ]}
             onPressIn={startRecordingHandler}
             onPressOut={stopRecordingAndSend}
             disabled={sending}
+            delayLongPress={200}
           >
             {sending ? (
-              <View style={styles.recordingButtonContent}>
-                <ActivityIndicator size="small" color={theme.colors.primary} />
+              <View style={styles.processingContainer}>
+                <ActivityIndicator size="small" color={theme.colors.white} />
                 <Text style={styles.voiceRecordText}>处理中...</Text>
               </View>
             ) : (
@@ -723,7 +723,11 @@ const Conversation = () => {
     return (
       <View style={styles.inputContainer}>
         {/* 切换到语音输入按钮 */}
-        <TouchableOpacity style={styles.modeToggleButton} onPress={toggleInputMode}>
+        <TouchableOpacity 
+          style={styles.modeToggleButton} 
+          onPress={toggleInputMode}
+          activeOpacity={0.7}
+        >
           <Icon name="mic" size={22} color={theme.colors.text} />
         </TouchableOpacity>
         
@@ -999,19 +1003,18 @@ const styles = StyleSheet.create({
   
   // 新增样式 - 语音输入相关
   modeToggleButton: {
-    width: 40,
-    height: 40,
+    padding: 8,
+    marginRight: 8,
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
+    backgroundColor: 'rgba(0,0,0,0.03)',
   },
   voiceRecordButton: {
     flex: 1,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#f0f0f0',
-    flexDirection: 'row',
+    backgroundColor: 'rgba(0,0,0,0.05)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 16,
@@ -1019,22 +1022,23 @@ const styles = StyleSheet.create({
   voiceRecordButtonActive: {
     backgroundColor: theme.colors.primary,
   },
-  voiceRecordText: {
-    fontSize: 16,
-    marginRight: 8,
-    color: theme.colors.text,
-  },
-  voiceRecordButtonDisabled: {
-    backgroundColor: '#e0e0e0',
-    opacity: 0.7,
-  },
   recordingButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  voiceRecordText: {
+    marginRight: 8,
+    fontSize: hp(1.8),
+    color: theme.colors.text,
+  },
   voiceRecordTextActive: {
     color: theme.colors.white,
+  },
+  processingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

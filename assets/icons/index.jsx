@@ -30,6 +30,8 @@ import BookmarkFill from './BookmarkFill';
 import Github from './Github';
 import QQ from './QQ';
 import QQPenguin from './QQPenguin';
+import Mic from './Mic';
+import Keyboard from './Keyboard';
 
 
 const icons = {
@@ -62,6 +64,8 @@ const icons = {
     github: Github,
     qq: QQ,
     qqPenguin: QQPenguin,
+    mic: Mic,
+    keyboard: Keyboard,
 }
 
 const Icon = ({name, ...props}) => {

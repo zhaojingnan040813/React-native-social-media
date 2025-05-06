@@ -118,3 +118,50 @@ npm run reset-project
   - 增强了错误处理，添加了多次失败后的友好提示
   - 实现了演示模式，在无法播放真实音频时提供替代体验
   - 优化了URL处理，确保生成正确的Supabase Storage URL
+
+## 应用打包说明
+
+### 日志控制
+
+本项目使用了`babel-plugin-transform-remove-console`插件自动移除生产环境中的控制台日志。在开发阶段可以正常使用`console.log`等语句辅助调试，打包时这些语句会被自动移除，提高应用性能和安全性。
+
+### 打包命令
+
+我们提供了以下打包命令，确保在打包时正确设置环境变量：
+
+```bash
+# 生产环境打包 (移除所有控制台日志)
+npm run build:android
+
+# 预览版打包 (移除所有控制台日志)
+npm run build:android:preview
+
+# 开发环境打包 (保留控制台日志)
+npm run build:android:dev
+```
+
+### 验证构建模式
+
+如果您想验证当前的构建模式，可以运行：
+
+```bash
+npm run check-build-mode
+```
+
+这将显示当前环境设置和是否启用了日志移除功能。
+
+### 日志辅助函数
+
+为了更好地管理日志，我们提供了一组日志辅助函数，位于`helpers/logHelper.js`：
+
+```javascript
+import { logDebug, logInfo, logWarn, logError } from '../helpers/logHelper';
+
+// 使用示例
+logDebug('组件名', '调试信息', { 额外数据 });
+logInfo('组件名', '普通信息');
+logWarn('组件名', '警告信息');
+logError('组件名', '错误信息', error对象);
+```
+
+这些函数在开发环境中正常工作，在生产环境中会被自动移除，无需手动处理。
