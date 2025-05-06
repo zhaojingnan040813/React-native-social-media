@@ -236,7 +236,7 @@ const Profile = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingBottom: 30,
+    paddingBottom: 60,
   },
   headerContainer: {
     marginHorizontal: wp(4), 
@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
   },
   logoutBtn: {
-    marginTop: 20,
+    marginTop: -10,
     backgroundColor: '#fee2e2',
     paddingVertical: 12,
     borderRadius: 10,
