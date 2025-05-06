@@ -8,6 +8,11 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import MessageSyncManager from '../components/MessageSyncManager'
 import { ToastAndroid } from 'react-native'
 import { cleanupAllChannels } from '../services/realtimeService'
+import moment from 'moment'
+import 'moment/locale/zh-cn'
+
+// 设置moment为中文环境
+moment.locale('zh-cn');
 
 // 忽略特定的黄色警告
 LogBox.ignoreLogs([

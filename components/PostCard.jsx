@@ -81,7 +81,7 @@ const PostCard = ({
   const [toastMessage, setToastMessage] = useState('');
 
   const liked = likes.filter(like=> like.userId==currentUser?.id)[0]? true: false;
-  const createdAt = moment(item?.created_at).format('MMM D');
+  const createdAt = moment(item?.created_at).format('M月D日');
   const htmlContent = wrapHtmlContent(item?.body);
   const shadowStyles = {
     shadowOffset: {

@@ -6,7 +6,7 @@ import { theme } from '../constants/theme';
 import { hp } from '../helpers/common';
 
 const NotificationItem = ({router, item}) => {
-    const createdAt = moment(item?.created_at).format('MMM D');
+    const createdAt = moment(item?.created_at).format('M月D日');
 
     const handleClick = ()=>{
         let {postId, commentId} = JSON.parse(item.data);

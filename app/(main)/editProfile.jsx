@@ -84,7 +84,7 @@ const EditProfile = () => {
   // 格式化日期显示
   const formatDate = (date) => {
     if (!date) return '';
-    return moment(date).format('YYYY-MM-DD');
+    return moment(date).format('YYYY年MM月DD日');
   };
 
   const onPickImage = async () => {

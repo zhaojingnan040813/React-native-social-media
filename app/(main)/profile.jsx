@@ -45,7 +45,7 @@ const Profile = () => {
   // 格式化生日显示
   const formatBirthday = (dateString) => {
     if (!dateString) return '';
-    return moment(dateString).format('YYYY-MM-DD');
+    return moment(dateString).format('YYYY年MM月DD日');
   };
 
   // 处理点击特性项
