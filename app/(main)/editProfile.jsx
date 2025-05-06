@@ -9,6 +9,7 @@ import ScreenWrapper from '../../components/ScreenWrapper'
 import Button from '../../components/Button'
 import BackButton from '../../components/BackButton'
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { updateUser } from '../../services/userService'
 import { getFilePath, getUserImageSrc, uploadFile } from '../../services/imageService'
 import { Image } from 'expo-image';
@@ -32,6 +33,7 @@ const EditProfile = () => {
   const [profileModal, toggleProfileModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [gettingLocation, setGettingLocation] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showGenderSelection, setShowGenderSelection] = useState(false);
   const [showCollegeSelection, setShowCollegeSelection] = useState(false);
@@ -228,6 +230,56 @@ const EditProfile = () => {
     router.push('/profile');
   };
   
+  // 获取当前位置
+  const getCurrentLocation = async () => {
+    try {
+      setGettingLocation(true);
+      
+      // 请求位置权限
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert('提示', '需要位置权限才能获取您的当前位置');
+        setGettingLocation(false);
+        return;
+      }
+      
+      // 获取当前位置
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced
+      });
+      
+      // 反向地理编码获取具体地址
+      const geocode = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude
+      });
+      
+      if (geocode.length > 0) {
+        const address = geocode[0];
+        // 组合完整地址
+        const formattedAddress = [
+          address.region,
+          address.city, 
+          address.district, 
+          address.street, 
+          address.name
+        ].filter(Boolean).join(', ');
+        
+        // 更新地址字段
+        setUser(prev => ({...prev, address: formattedAddress}));
+        Alert.alert('成功', '已获取到您的当前位置');
+      } else {
+        Alert.alert('提示', '无法获取详细地址信息');
+      }
+    } catch (error) {
+      console.error('获取位置失败:', error);
+      Alert.alert('错误', '获取位置信息失败: ' + error.message);
+    } finally {
+      setGettingLocation(false);
+    }
+  };
+
   return (
     <ScreenWrapper bg="white">
         <View style={styles.container}>
@@ -531,13 +583,27 @@ const EditProfile = () => {
                     />
                     
                     {/* 地址 */}
-                    <Input
-                      icon={<Icon name="location" size={26} />}
-                      placeholder='输入您的地址'
-                      placeholderTextColor={theme.colors.textLight}
-                      value={user.address}
-                      onChangeText={value=> setUser({...user, address: value})}
-                    />
+                    <View style={styles.locationContainer}>
+                      <Input
+                        icon={<Icon name="location" size={26} />}
+                        placeholder='输入您的地址'
+                        placeholderTextColor={theme.colors.textLight}
+                        value={user.address}
+                        onChangeText={value=> setUser({...user, address: value})}
+                        containerStyle={{flex: 1}}
+                      />
+                      <TouchableOpacity 
+                        style={styles.locationButton}
+                        onPress={getCurrentLocation}
+                        disabled={gettingLocation}
+                      >
+                        {gettingLocation ? (
+                          <ActivityIndicator size="small" color="white" />
+                        ) : (
+                          <FontAwesome5 name="map-marker-alt" size={18} color="white" />
+                        )}
+                      </TouchableOpacity>
+                    </View>
                     
                     {/* 个人简介 */}
                     <Input
@@ -554,7 +620,7 @@ const EditProfile = () => {
                       title="更新" 
                       loading={loading} 
                       onPress={onSubmit} 
-                      disabled={uploadingAvatar}
+                      disabled={uploadingAvatar || gettingLocation}
                     />
                 </View>
                     
@@ -726,6 +792,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 15,
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  locationButton: {
+    backgroundColor: theme.colors.primary,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
 })
 
