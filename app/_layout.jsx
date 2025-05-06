@@ -7,12 +7,24 @@ import { getUserData } from '../services/userService'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import MessageSyncManager from '../components/MessageSyncManager'
 import { ToastAndroid } from 'react-native'
+import { cleanupAllChannels } from '../services/realtimeService'
 
 // 忽略特定的黄色警告
 LogBox.ignoreLogs([
   'Overwriting fontFamily style attribute preprocessor',
-  'Sending `onAnimatedValueUpdate` with no listeners registered.'
+  'Sending `onAnimatedValueUpdate` with no listeners registered.',
+  'Possible Unhandled Promise Rejection',
+  'Supabase Client initialized without explicit session handling',
+  'ReactDOM.render is no longer supported'
 ]);
+
+// 应用启动时清理所有通道
+try {
+  cleanupAllChannels();
+  // console.log('已清理所有现有实时通道');
+} catch (error) {
+  console.error('清理通道失败:', error);
+}
 
 const _layout = () => {
   const [isConnected, setIsConnected] = useState(true);
@@ -60,6 +72,18 @@ function RootLayoutNav({ isConnected }) {
     let res = await getUserData(user.id);
     if(res.success) setUserData(res.data);
   }
+
+  // 应用关闭时清理
+  useEffect(() => {
+    return () => {
+      try {
+        // 清理所有实时通道
+        cleanupAllChannels();
+      } catch (error) {
+        console.error('应用关闭时清理失败:', error);
+      }
+    };
+  }, []);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>

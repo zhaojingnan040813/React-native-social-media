@@ -19,7 +19,7 @@ import { hp, wp } from '../../helpers/common';
 import Icon from '../../assets/icons';
 import Avatar from '../../components/Avatar';
 import { getConversationMessages, sendMessage, markMessagesAsRead } from '../../services/messageService';
-import { supabase } from '../../lib/supabase';
+import { subscribeToConversation } from '../../services/realtimeService';
 
 const Conversation = () => {
   const { user } = useAuth();
@@ -33,19 +33,21 @@ const Conversation = () => {
   const [sending, setSending] = useState(false);
   
   const flatListRef = useRef(null);
-  const subscription = useRef(null);
+  const subscriptionRef = useRef(null);
+  const messageCache = useRef(new Set()).current; // 消息ID缓存，用于客户端去重
   
   // 加载消息并订阅实时更新
   useEffect(() => {
-    loadMessages();
+    if (conversationId) {
+      loadMessages();
+      subscribeToMessages();
+    }
     
-    // 设置实时订阅
-    setupMessagesSubscription();
-    
-    // 清理函数
+    // 组件卸载时清理订阅
     return () => {
-      if (subscription.current) {
-        supabase.removeChannel(subscription.current);
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+        subscriptionRef.current = null;
       }
     };
   }, [conversationId]);
@@ -57,7 +59,7 @@ const Conversation = () => {
       
       // 验证必要参数
       if (!conversationId || !user?.id) {
-        console.error('缺少必要参数：', { conversationId, userId: user?.id });
+        // console.error('缺少必要参数：', { conversationId, userId: user?.id });
         Alert.alert('提示', '无法加载对话，请返回重试');
         router.back();
         return;
@@ -66,122 +68,98 @@ const Conversation = () => {
       const response = await getConversationMessages(conversationId);
       
       if (response.success) {
+        // 将所有消息ID添加到缓存
+        response.data.forEach(msg => {
+          messageCache.add(msg.id.toString());
+        });
+        
         setMessages(response.data);
         
         // 标记消息为已读
         await markMessagesAsRead(conversationId, user.id);
       } else {
-        console.error('加载消息失败:', response.msg);
+        // console.error('加载消息失败:', response.msg);
         Alert.alert('提示', '无法加载消息: ' + response.msg);
       }
     } catch (error) {
-      console.error('加载消息出错:', error);
+      // console.error('加载消息出错:', error);
       Alert.alert('错误', '加载消息时出现问题');
     } finally {
       setLoading(false);
     }
   };
   
-  // 设置消息实时订阅
-  const setupMessagesSubscription = () => {
+  // 订阅消息更新
+  const subscribeToMessages = () => {
     try {
-      if (!conversationId) return;
+      // 确保只有一个活跃订阅
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+      }
       
-      // 创建具有唯一ID的通道名称，避免多个通道冲突
-      const channelName = `conversation:${conversationId}:${new Date().getTime()}`;
-      
-      console.log('设置实时订阅:', channelName);
-      
-      const channel = supabase
-        .channel(channelName)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'messages',
-            filter: `conversation_id=eq.${conversationId}`
-          },
-          (payload) => {
-            console.log('收到新消息通知:', payload.new);
+      // 处理新消息
+      const handleNewMessage = (newMessage) => {
+        // 检查消息是否已在缓存中
+        if (messageCache.has(newMessage.id.toString())) {
+          // console.log(`消息已存在，忽略: ${newMessage.id}`);
+          return;
+        }
+        
+        // 如果是自己发送的消息，检查是否有对应的临时消息
+        if (newMessage.senderId === user.id) {
+          setMessages(prev => {
+            // 查找匹配的临时消息
+            const tempIndex = prev.findIndex(msg => 
+              msg._isTemp && 
+              msg.content === newMessage.content &&
+              Math.abs(new Date(msg.created_at) - new Date(newMessage.created_at)) < 60000
+            );
             
-            // 添加新消息到列表，避免重复
-            setMessages((prev) => {
-              // 检查消息是否已经存在（根据ID、realId或临时消息内容匹配）
-              const exists = prev.some(msg => 
-                msg.id === payload.new.id || 
-                msg._realId === payload.new.id ||
-                (msg._isTemp && 
-                 msg.senderId === payload.new.senderId && 
-                 msg.content === payload.new.content &&
-                 Math.abs(new Date(msg.created_at) - new Date(payload.new.created_at)) < 60000) // 1分钟内发送的相同内容消息视为同一条
-              );
-              
-              if (exists) {
-                // 如果消息已存在，则替换临时消息
-                return prev.map(msg => {
-                  if (msg._isTemp && 
-                      msg.senderId === payload.new.senderId && 
-                      msg.content === payload.new.content &&
-                      Math.abs(new Date(msg.created_at) - new Date(payload.new.created_at)) < 60000) {
-                    return { 
-                      ...payload.new, 
-                      _replaced: true,
-                      id: msg.id, // 保留原始ID以避免UI跳跃
-                      _realId: payload.new.id 
-                    };
-                  }
-                  return msg;
-                });
-              }
-              
-              return [...prev, payload.new];
-            });
-            
-            // 如果消息接收者是当前用户，标记为已读
-            if (payload.new.receiverId === user.id) {
-              markMessagesAsRead(conversationId, user.id);
+            if (tempIndex >= 0) {
+              // 更新临时消息为真实消息
+              // console.log(`更新临时消息: ${tempIndex} -> ${newMessage.id}`);
+              const updated = [...prev];
+              updated[tempIndex] = {
+                ...newMessage,
+                _wasTemp: true
+              };
+              return updated;
             }
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'messages',
-            filter: `conversation_id=eq.${conversationId}`
-          },
-          (payload) => {
-            console.log('收到消息更新通知:', payload);
             
-            // 更新消息状态，避免重复更新
-            setMessages((prev) => {
-              // 检查是否已经应用了这个更新
-              const alreadyUpdated = prev.some(msg => 
-                (msg.id === payload.new.id || msg._realId === payload.new.id) && 
-                msg.is_read === payload.new.is_read
-              );
-              
-              if (alreadyUpdated) {
-                return prev; // 如果已经更新过，不做任何改变
-              }
-              
-              return prev.map(msg => 
-                (msg.id === payload.new.id || msg._realId === payload.new.id) 
-                  ? {...payload.new, id: msg.id, _realId: payload.new.id} // 保留原有ID
-                  : msg
-              );
-            });
+            // 没有找到对应的临时消息，添加新消息
+            // console.log(`添加新消息 (发送者): ${newMessage.id}`);
+            messageCache.add(newMessage.id.toString());
+            return [...prev, newMessage];
+          });
+        } else {
+          // 其他人发送的消息，直接添加
+          // console.log(`添加新消息 (接收者): ${newMessage.id}`);
+          messageCache.add(newMessage.id.toString());
+          setMessages(prev => [...prev, newMessage]);
+          
+          // 如果是发给当前用户的消息，标记为已读
+          if (newMessage.receiverId === user.id) {
+            markMessagesAsRead(conversationId, user.id);
           }
-        )
-        .subscribe((status) => {
-          console.log('实时订阅状态:', status);
-        });
+        }
+      };
       
-      subscription.current = channel;
+      // 处理消息更新 (主要是已读状态)
+      const handleMessageUpdate = (updatedMessage) => {
+        setMessages(prev => prev.map(msg => 
+          msg.id === updatedMessage.id ? { ...msg, ...updatedMessage } : msg
+        ));
+      };
+      
+      // 创建订阅
+      subscriptionRef.current = subscribeToConversation(
+        conversationId,
+        handleNewMessage,
+        handleMessageUpdate
+      );
+      
     } catch (error) {
-      console.error('设置实时订阅失败:', error);
+      // console.error('设置实时订阅失败:', error);
     }
   };
   
@@ -211,7 +189,6 @@ const Conversation = () => {
       content: messageContent,
       is_read: false,
       created_at: new Date().toISOString(),
-      // 添加临时标记
       _isTemp: true
     };
     
@@ -233,49 +210,7 @@ const Conversation = () => {
         messageContent
       );
       
-      if (response.success) {
-        console.log('消息发送成功:', response.data);
-        
-        // 用实际消息替换临时消息
-        setMessages(prev => {
-          return prev.map(msg => {
-            // 匹配临时消息ID或内容+时间相似的临时消息
-            if (msg.id === tempId || 
-               (msg._isTemp && 
-                msg.senderId === user.id && 
-                msg.content === messageContent)) {
-              // 返回服务器消息，但保留原始ID以避免列表重新渲染时的跳动
-              return { 
-                ...response.data, 
-                _isTemp: false,
-                id: msg.id, // 保留临时ID
-                _realId: response.data.id // 存储真实ID
-              };
-            }
-            return msg;
-          });
-        });
-        
-        // 添加额外的确认步骤，确保消息已添加
-        setTimeout(() => {
-          setMessages(prev => {
-            // 检查消息是否已存在（通过realId或消息内容）
-            const exists = prev.some(msg => 
-              (msg._realId && msg._realId === response.data.id) || 
-              (msg.id === response.data.id) ||
-              (!msg._isTemp && msg.senderId === user.id && msg.content === messageContent && 
-               Math.abs(new Date(msg.created_at) - new Date(response.data.created_at)) < 10000)
-            );
-            
-            if (!exists) {
-              console.log('消息未被正确添加，添加服务器返回消息');
-              return [...prev, response.data];
-            }
-            return prev;
-          });
-        }, 500);
-        
-      } else {
+      if (!response.success) {
         // 发送失败，标记消息为失败状态
         setMessages(prev => prev.map(msg => 
           msg.id === tempId 
@@ -283,8 +218,11 @@ const Conversation = () => {
             : msg
         ));
         
-        console.error('发送消息失败:', response.msg);
+        // console.error('发送消息失败:', response.msg);
         Alert.alert('发送失败', '无法发送消息，请稍后再试：' + response.msg);
+      } else {
+        // console.log(`消息发送成功: ${response.data.id}`);
+        // 服务端会通过实时通知更新消息状态，这里不需要额外操作
       }
     } catch (error) {
       // 标记消息为失败状态
@@ -294,7 +232,7 @@ const Conversation = () => {
           : msg
       ));
       
-      console.error('发送消息出错:', error);
+      // console.error('发送消息出错:', error);
       Alert.alert('错误', '发送消息时出现问题：' + error.message);
     } finally {
       setSending(false);
@@ -314,7 +252,7 @@ const Conversation = () => {
     
     return (
       <View 
-        key={item.id} // 确保key是唯一的
+        key={item.id} 
         style={[
           styles.messageContainer,
           isMyMessage ? styles.myMessageContainer : styles.otherMessageContainer
@@ -523,6 +461,13 @@ const styles = StyleSheet.create({
   otherMessageText: {
     color: theme.colors.text,
   },
+  tempMessageBubble: {
+    opacity: 0.8,
+  },
+  failedMessageBubble: {
+    borderWidth: 1,
+    borderColor: 'red',
+  },
   inputContainer: {
     flexDirection: 'row',
     padding: 12,
@@ -568,22 +513,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
     elevation: 0,
   },
-  tempMessageBubble: {
-    opacity: 0.8,
-  },
-  failedMessageBubble: {
-    borderWidth: 1,
-    borderColor: 'red',
+  errorText: {
+    fontSize: hp(1.4),
+    color: 'red',
+    marginTop: 4,
   },
   sendingIndicator: {
     position: 'absolute',
     right: 8,
     bottom: 8,
-  },
-  errorText: {
-    fontSize: hp(1.4),
-    color: 'red',
-    marginTop: 4,
   },
 });
 
