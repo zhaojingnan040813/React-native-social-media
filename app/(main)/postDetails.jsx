@@ -1,5 +1,5 @@
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Pressable, Keyboard, Platform } from 'react-native'
-import React, { useEffect, useRef, useState } from 'react'
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Pressable, Keyboard, Platform, RefreshControl } from 'react-native'
+import React, { useEffect, useRef, useState, useCallback } from 'react'
 import PostCard from '../../components/PostCard'
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
@@ -32,6 +32,7 @@ const PostDetails = () => {
     const [post, setPost] = useState(null);
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
     const {user} = useAuth();  
     const commentRef = useRef("");
     const inputRef = useRef(null);
@@ -135,6 +136,21 @@ const PostDetails = () => {
             }
         }
     }, [postId, timestamp]);
+
+    // 下拉刷新处理函数
+    const onRefresh = useCallback(async () => {
+        if (!postId) return;
+        
+        setRefreshing(true);
+        try {
+            await getPostDetails();
+        } catch (error) {
+            console.error('刷新帖子详情出错:', error);
+            Alert.alert('提示', '刷新数据失败，请稍后再试');
+        } finally {
+            setRefreshing(false);
+        }
+    }, [postId]);
 
     const getPostDetails = async () => {
         // console.log(`开始获取帖子详情数据，ID: ${postId}`);
@@ -282,11 +298,21 @@ const PostDetails = () => {
                                 data={post?.comments || []}
                                 contentContainerStyle={{gap: 10, paddingBottom: 30}}
                                 showsVerticalScrollIndicator={true}
+                                refreshControl={
+                                    <RefreshControl
+                                        refreshing={refreshing}
+                                        onRefresh={onRefresh}
+                                        colors={[theme.colors.primary]} // Android
+                                        tintColor={theme.colors.primary} // iOS
+                                        title="下拉刷新" // iOS
+                                        titleColor={theme.colors.textLight} // iOS
+                                    />
+                                }
                                 ListHeaderComponent={<>
             <PostCard
-                                        item={post}
+                item={post}
                 currentUser={user}
-                                        showMoreIcon={false}
+                showMoreIcon={false}
                 router={router} 
                 showDelete={true}
                 onDelete={onDeletePost}
