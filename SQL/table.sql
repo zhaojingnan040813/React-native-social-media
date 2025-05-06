@@ -166,6 +166,8 @@ create table public.messages (
                                  content text not null, -- 消息内容
                                  is_read boolean default false, -- 是否已读
                                  media_url text, -- 可选，附加媒体文件的URL
+                                 type text default 'text', -- 消息类型：'text'或'audio'等
+                                 audio_duration integer, -- 音频消息的时长(秒)
                                  created_at timestamp with time zone not null default now()
 );
 

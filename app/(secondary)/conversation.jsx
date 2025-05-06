@@ -78,13 +78,7 @@ const Conversation = () => {
       }
       
       // 清理录音实例
-      if (recordingInstance) {
-        stopRecordingCleanup();
-      }
-      
-      if (recordingTimer.current) {
-        clearInterval(recordingTimer.current);
-      }
+      stopRecordingCleanup();
     };
   }, [conversationId, userId]);
   
@@ -325,9 +319,12 @@ const Conversation = () => {
     // 停止录音实例
     if (recordingInstance) {
       try {
-        await recordingInstance.stopAndUnloadAsync();
+        const status = await recordingInstance.getStatusAsync();
+        if (status.isRecording) {
+          await recordingInstance.stopAndUnloadAsync();
+        }
       } catch (error) {
-        console.error('停止录音失败:', error);
+        console.log('清理录音实例失败，可能已经被释放', error);
       }
     }
     
@@ -339,34 +336,45 @@ const Conversation = () => {
   
   // 停止录音并发送语音消息
   const stopRecordingAndSend = async () => {
-    // 没有录音实例
+    // 先停止录音计时器
+    if (recordingTimer.current) {
+      clearInterval(recordingTimer.current);
+      recordingTimer.current = null;
+    }
+    
+    // 如果没有录音实例，直接返回
     if (!recordingInstance) {
-      stopRecordingCleanup();
+      setIsRecording(false);
       return;
     }
     
     try {
-      // 清除计时器
-      if (recordingTimer.current) {
-        clearInterval(recordingTimer.current);
-        recordingTimer.current = null;
-      }
+      console.log('停止录音并准备发送...');
+      
+      // 保存当前录音实例的引用，并立即清除状态中的引用
+      const currentRecording = recordingInstance;
+      setRecordingInstance(null);
+      setIsRecording(false);
       
       // 停止录音并获取文件URI
-      const result = await stopRecording(recordingInstance);
+      const result = await stopRecording(currentRecording);
       
       if (!result.success) {
+        console.log('录音停止失败:', result.error);
         Alert.alert('提示', result.error || '录音失败');
-        stopRecordingCleanup();
+        setRecordingDuration(0);
         return;
       }
       
-      // 如果录音时长太短（少于1秒），不发送
+      // 检查录音时长，太短不发送（小于1秒）
       if (result.durationMillis < 1000) {
         Alert.alert('提示', '录音时间太短');
-        stopRecordingCleanup();
+        setRecordingDuration(0);
         return;
       }
+      
+      // 保存本地URI，用于可能的本地播放
+      const localUri = result.uri;
       
       // 生成唯一的临时ID
       const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
@@ -380,10 +388,11 @@ const Conversation = () => {
         content: '',
         type: 'audio',
         is_read: false,
-        audio_duration: Math.round(result.durationMillis / 1000),
+        audio_duration: Math.round(result.durationMillis / 1000) || 5, // 使用默认5秒，避免0
         media_url: result.uri, // 临时使用本地URI
         created_at: new Date().toISOString(),
-        _isTemp: true
+        _isTemp: true,
+        _localUri: localUri // 保存本地URI，方便后续播放
       };
       
       // 先添加到本地显示
@@ -396,47 +405,93 @@ const Conversation = () => {
       
       // 上传音频文件
       setSending(true);
-      const uploadResult = await uploadAudioFile(result.uri);
       
-      if (!uploadResult.success) {
-        // 上传失败
+      try {
+        console.log('开始上传音频文件...');
+        const uploadResult = await uploadAudioFile(result.uri);
+        
+        if (!uploadResult.success) {
+          // 上传失败
+          console.log('语音上传失败:', uploadResult.error);
+          setMessages(prev => prev.map(msg => 
+            msg.id === tempId 
+              ? { ...msg, _sendFailed: true } 
+              : msg
+          ));
+          
+          Alert.alert('提示', '语音上传失败: ' + (uploadResult.error || '未知错误'));
+          setSending(false);
+          return;
+        }
+        
+        console.log('音频上传成功，准备发送消息...');
+        console.log('音频URL:', uploadResult.url);
+        console.log('音频时长:', result.durationMillis);
+        
+        // 发送语音消息
+        const response = await sendAudioMessage(
+          conversationId,
+          user.id,
+          userId,
+          uploadResult.url,
+          result.durationMillis
+        );
+        
+        console.log('发送语音消息响应:', response);
+        
+        if (!response.success) {
+          // 发送失败
+          console.log('发送语音消息失败:', response.msg);
+          setMessages(prev => prev.map(msg => 
+            msg.id === tempId 
+              ? { ...msg, _sendFailed: true } 
+              : msg
+          ));
+          
+          Alert.alert('提示', '发送语音失败: ' + response.msg);
+        } else {
+          console.log('语音消息发送成功');
+          
+          // 检查是否需要使用本地文件 (Response 中返回 useLocalFile 标志)
+          if (response.useLocalFile === true) {
+            console.log('服务器建议使用本地文件播放，已保存本地URI');
+            
+            // 更新消息，添加本地文件标记
+            setMessages(prev => prev.map(msg => 
+              msg.id === tempId
+                ? { 
+                    ...msg, 
+                    id: response.data.id, 
+                    _isTemp: false,
+                    _useLocalUri: true,
+                    _localUri: localUri // 保存本地URI用于播放
+                  }
+                : msg
+            ));
+          } else {
+            // 正常更新消息
+            setMessages(prev => prev.map(msg => 
+              msg.id === tempId
+                ? { ...msg, id: response.data.id, _isTemp: false }
+                : msg
+            ));
+          }
+        }
+      } catch (uploadError) {
+        console.error('处理上传或发送过程中出错:', uploadError);
         setMessages(prev => prev.map(msg => 
           msg.id === tempId 
             ? { ...msg, _sendFailed: true } 
             : msg
         ));
-        
-        Alert.alert('提示', '语音上传失败: ' + (uploadResult.error || '未知错误'));
-        stopRecordingCleanup();
-        return;
+        Alert.alert('错误', '处理语音消息时出现问题');
+      } finally {
+        setSending(false);
+        setRecordingDuration(0);
       }
-      
-      // 发送语音消息
-      const response = await sendAudioMessage(
-        conversationId,
-        user.id,
-        userId,
-        uploadResult.url,
-        result.durationMillis
-      );
-      
-      if (!response.success) {
-        // 发送失败
-        setMessages(prev => prev.map(msg => 
-          msg.id === tempId 
-            ? { ...msg, _sendFailed: true } 
-            : msg
-        ));
-        
-        Alert.alert('提示', '发送语音失败: ' + response.msg);
-      }
-      
     } catch (error) {
-      console.error('处理语音消息失败:', error);
+      console.error('停止录音过程中出错:', error);
       Alert.alert('错误', '处理语音消息时出现问题');
-    } finally {
-      setSending(false);
-      setRecordingInstance(null);
       setIsRecording(false);
       setRecordingDuration(0);
     }
@@ -506,6 +561,14 @@ const Conversation = () => {
     
     // 如果是语音消息
     if (item.type === 'audio') {
+      // 优先使用标记的本地URI（如果有）
+      const audioUri = item._useLocalUri ? item._localUri : item.media_url;
+      
+      // 日志跟踪
+      if (item._useLocalUri) {
+        console.log('使用本地URI播放音频:', item._localUri);
+      }
+      
       return (
         <View style={styles.messageRow}>
           {!isMyMessage ? (
@@ -516,7 +579,8 @@ const Conversation = () => {
               />
               
               <AudioMessage 
-                audioUrl={item.media_url}
+                audioUrl={audioUri}
+                localAudioUri={item._localUri} // 传递本地URI作为备用
                 duration={item.audio_duration || 0}
                 isCurrentUser={false}
                 onPlayStateChange={(isPlaying) => handleAudioPlayStateChange(item.id, isPlaying)}
@@ -525,7 +589,8 @@ const Conversation = () => {
           ) : (
             <View style={styles.myMessageRow}>
               <AudioMessage 
-                audioUrl={item.media_url}
+                audioUrl={audioUri}
+                localAudioUri={item._localUri} // 传递本地URI作为备用
                 duration={item.audio_duration || 0}
                 isCurrentUser={true}
                 onPlayStateChange={(isPlaying) => handleAudioPlayStateChange(item.id, isPlaying)}
@@ -610,7 +675,11 @@ const Conversation = () => {
       return (
         <View style={styles.inputContainer}>
           {/* 切换到文本输入按钮 */}
-          <TouchableOpacity style={styles.modeToggleButton} onPress={toggleInputMode}>
+          <TouchableOpacity 
+            style={styles.modeToggleButton} 
+            onPress={toggleInputMode}
+            disabled={isRecording || sending}
+          >
             <Icon name="keyboard" size={22} color={theme.colors.text} />
           </TouchableOpacity>
           
@@ -618,19 +687,33 @@ const Conversation = () => {
           <Pressable 
             style={[
               styles.voiceRecordButton,
-              isRecording && styles.voiceRecordButtonActive
+              isRecording && styles.voiceRecordButtonActive,
+              sending && styles.voiceRecordButtonDisabled
             ]}
             onPressIn={startRecordingHandler}
             onPressOut={stopRecordingAndSend}
+            disabled={sending}
           >
-            <Text style={styles.voiceRecordText}>
-              {isRecording ? `录音中 ${recordingDuration}s` : '按住 说话'}
-            </Text>
-            <Icon 
-              name="mic" 
-              size={20} 
-              color={isRecording ? theme.colors.white : theme.colors.text} 
-            />
+            {sending ? (
+              <View style={styles.recordingButtonContent}>
+                <ActivityIndicator size="small" color={theme.colors.primary} />
+                <Text style={styles.voiceRecordText}>处理中...</Text>
+              </View>
+            ) : (
+              <View style={styles.recordingButtonContent}>
+                <Text style={[
+                  styles.voiceRecordText,
+                  isRecording && styles.voiceRecordTextActive
+                ]}>
+                  {isRecording ? `录音中 ${recordingDuration}s` : '按住 说话'}
+                </Text>
+                <Icon 
+                  name="mic" 
+                  size={20} 
+                  color={isRecording ? theme.colors.white : theme.colors.text} 
+                />
+              </View>
+            )}
           </Pressable>
         </View>
       );
@@ -940,6 +1023,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginRight: 8,
     color: theme.colors.text,
+  },
+  voiceRecordButtonDisabled: {
+    backgroundColor: '#e0e0e0',
+    opacity: 0.7,
+  },
+  recordingButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  voiceRecordTextActive: {
+    color: theme.colors.white,
   },
 });
 
