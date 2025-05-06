@@ -180,6 +180,7 @@ create index idx_messages_receiver_id on messages using btree ("receiverId");
 
 
 
+ALTER TABLE public.notifications ADD COLUMN type TEXT, ADD COLUMN isRead BOOLEAN DEFAULT FALSE;
 
 
 
