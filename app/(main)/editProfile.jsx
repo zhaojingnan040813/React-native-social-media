@@ -551,7 +551,7 @@ const EditProfile = () => {
 
                     {/* 更新按钮 */}
                     <Button 
-                      title="更新其他信息" 
+                      title="更新" 
                       loading={loading} 
                       onPress={onSubmit} 
                       disabled={uploadingAvatar}

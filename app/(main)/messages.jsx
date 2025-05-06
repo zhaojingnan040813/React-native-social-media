@@ -107,7 +107,7 @@ const Messages = () => {
       onPress={() => handleUserPress(item)}
     >
       <Avatar 
-        source={item.image} 
+        uri={item.image} 
         size={50} 
         style={styles.avatar}
       />

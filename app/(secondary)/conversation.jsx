@@ -23,6 +23,7 @@ import Icon from '../../assets/icons';
 import Avatar from '../../components/Avatar';
 import { getConversationMessages, sendMessage, markMessagesAsRead } from '../../services/messageService';
 import { subscribeToConversation } from '../../services/realtimeService';
+import { getUserData } from '../../services/userService';
 
 const Conversation = () => {
   const { user } = useAuth();
@@ -34,6 +35,7 @@ const Conversation = () => {
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [otherUser, setOtherUser] = useState(null); // 添加对方用户信息状态
   
   const flatListRef = useRef(null);
   const subscriptionRef = useRef(null);
@@ -44,11 +46,16 @@ const Conversation = () => {
   // 不再使用动画的背景色，改为静态变化
   const [isBackButtonPressed, setIsBackButtonPressed] = useState(false);
   
-  // 加载消息并订阅实时更新
+  // 加载消息并订阅实时更新，同时获取对方用户信息
   useEffect(() => {
     if (conversationId) {
       loadMessages();
       subscribeToMessages();
+      
+      // 获取对方用户信息
+      if (userId) {
+        loadOtherUserData();
+      }
     }
     
     // 组件卸载时清理订阅
@@ -58,7 +65,21 @@ const Conversation = () => {
         subscriptionRef.current = null;
       }
     };
-  }, [conversationId]);
+  }, [conversationId, userId]);
+  
+  // 加载对方用户信息
+  const loadOtherUserData = async () => {
+    try {
+      const result = await getUserData(userId);
+      if (result.success) {
+        setOtherUser(result.data);
+      } else {
+        console.log('获取对方用户信息失败:', result.msg);
+      }
+    } catch (error) {
+      console.log('加载对方用户信息出错:', error);
+    }
+  };
   
   // 加载对话消息
   const loadMessages = async () => {
@@ -293,14 +314,18 @@ const Conversation = () => {
     const sendFailed = item._sendFailed === true;
     
     // 获取用户头像URL
-    const myAvatarUrl = user?.user_metadata?.avatar_url || null;
+    const myAvatarUrl = user?.user_metadata?.avatar_url || user?.image;
+    const otherAvatarUrl = otherUser?.image;
     
     return (
       <View style={styles.messageRow}>
         {/* 对方的消息 */}
         {!isMyMessage ? (
           <View style={styles.otherMessageRow}>
-            <Avatar source={null} size={36} />
+            <Avatar 
+              uri={otherAvatarUrl} 
+              size={36} 
+            />
             
             <View style={[
               styles.messageBubble,
@@ -344,7 +369,7 @@ const Conversation = () => {
             </View>
             
             <Avatar 
-              source={myAvatarUrl ? { uri: myAvatarUrl } : null} 
+              uri={myAvatarUrl} 
               size={36} 
             />
           </View>
