@@ -4,10 +4,6 @@ import * as FileSystem from 'expo-file-system';
 import { supabase } from '../lib/supabase';
 import { supabaseUrl, service_role_key } from '../constants';
 import { createClient } from '@supabase/supabase-js';
-import { logDebug, logError, logInfo } from '../helpers/logHelper';
-
-// 日志标签
-const TAG = 'AudioService';
 
 // 创建一个管理员级客户端实例，用于绕过RLS策略
 const adminSupabase = createClient(supabaseUrl, service_role_key, {
@@ -29,7 +25,6 @@ export const requestAudioPermission = async () => {
     const { status } = await Audio.requestPermissionsAsync();
     return status === 'granted';
   } catch (error) {
-    logError(TAG, '请求录音权限失败:', error);
     return false;
   }
 };
@@ -45,7 +40,6 @@ export const startRecording = async () => {
       try {
         await activeRecording.stopAndUnloadAsync();
       } catch (error) {
-        logDebug(TAG, '释放之前的录音实例失败，可能已经被释放', error);
       }
       activeRecording = null;
     }
@@ -67,7 +61,6 @@ export const startRecording = async () => {
     });
 
     // 创建录音实例
-    logInfo(TAG, '开始录音...');
     const { recording } = await Audio.Recording.createAsync(
       Audio.RecordingOptionsPresets.HIGH_QUALITY
     );
@@ -81,7 +74,6 @@ export const startRecording = async () => {
       error: null 
     };
   } catch (error) {
-    logError(TAG, '开始录音失败:', error);
     return { 
       recording: null, 
       success: false, 
@@ -106,15 +98,11 @@ export const stopRecording = async (recording) => {
       };
     }
 
-    logInfo(TAG, '停止录音...');
-    
     // 检查录音状态，只有在未停止状态才停止
     const status = await recording.getStatusAsync();
     if (status.isRecording) {
       // 停止录音
       await recording.stopAndUnloadAsync();
-    } else {
-      logInfo(TAG, '录音已经停止，无需再次停止');
     }
     
     // 清除活跃录音引用
@@ -150,7 +138,6 @@ export const stopRecording = async (recording) => {
         error: null 
       };
     } catch (error) {
-      logInfo(TAG, '获取录音时长失败，使用默认值', error);
       // 如果无法获取时长，但有URI，仍然返回成功
       return {
         uri,
@@ -160,7 +147,6 @@ export const stopRecording = async (recording) => {
       };
     }
   } catch (error) {
-    logError(TAG, '停止录音失败:', error);
     return { 
       uri: null, 
       durationMillis: 0, 
@@ -186,18 +172,14 @@ export const uploadAudioFile = async (uri) => {
       };
     }
 
-    logInfo(TAG, '开始上传录音文件...', uri);
-    
     // 存储桶名称
     const BUCKET_NAME = 'uploads';
     
     // 生成文件路径 - 使用时间戳确保唯一性
     const filePath = `audio_messages/${Date.now()}.m4a`;
-    logInfo(TAG, '目标文件路径:', filePath);
     
     // 检查文件是否存在
     const fileInfo = await FileSystem.getInfoAsync(uri);
-    logInfo(TAG, '文件信息:', fileInfo);
     
     if (!fileInfo.exists) {
       return {
@@ -210,18 +192,14 @@ export const uploadAudioFile = async (uri) => {
 
     try {
       // 读取文件内容为Base64
-      logInfo(TAG, '开始读取文件内容...');
       const fileBase64 = await FileSystem.readAsStringAsync(uri, {
         encoding: FileSystem.EncodingType.Base64,
       });
-      logInfo(TAG, '文件内容已读取为Base64, 长度:', fileBase64.length);
       
       // 解码Base64为ArrayBuffer
       const fileData = decode(fileBase64);
-      logInfo(TAG, 'Base64已解码为ArrayBuffer');
       
       // 使用adminSupabase上传文件（绕过RLS策略）
-      logInfo(TAG, `尝试使用adminSupabase上传文件到 ${BUCKET_NAME} 存储桶...`);
       const { data, error } = await adminSupabase.storage
         .from(BUCKET_NAME)
         .upload(filePath, fileData, {
@@ -231,7 +209,6 @@ export const uploadAudioFile = async (uri) => {
         });
       
       if (error) {
-        logError(TAG, '上传录音失败:', error);
         return { 
           path: null, 
           url: null, 
@@ -242,7 +219,6 @@ export const uploadAudioFile = async (uri) => {
 
       // 获取公共URL
       const publicUrl = `${supabaseUrl}/storage/v1/object/public/${BUCKET_NAME}/${filePath}`;
-      logInfo(TAG, '上传成功，公开URL:', publicUrl);
       
       return { 
         path: filePath,
@@ -251,7 +227,6 @@ export const uploadAudioFile = async (uri) => {
         error: null 
       };
     } catch (uploadError) {
-      logError(TAG, '文件处理或上传失败:', uploadError);
       return {
         path: null,
         url: null,
@@ -260,7 +235,6 @@ export const uploadAudioFile = async (uri) => {
       };
     }
   } catch (error) {
-    logError(TAG, '上传录音文件失败:', error);
     return { 
       path: null, 
       url: null, 
@@ -275,14 +249,10 @@ export const uploadAudioFile = async (uri) => {
  */
 const uploadToBackupLocation = async (fileData, filePath) => {
   try {
-    logInfo(TAG, '尝试使用备用存储桶上传...');
-    
     // 尝试不同的存储桶
     const BACKUP_BUCKETS = ['public', 'uploads', 'audio', 'media'];
     
     for (const bucket of BACKUP_BUCKETS) {
-      logInfo(TAG, `尝试上传到 ${bucket} 存储桶...`);
-      
       const { data, error } = await supabase.storage
         .from(bucket)
         .upload(filePath, fileData, {
@@ -292,8 +262,6 @@ const uploadToBackupLocation = async (fileData, filePath) => {
         });
       
       if (!error) {
-        logInfo(TAG, `成功上传到 ${bucket} 存储桶`);
-        
         // 尝试获取签名URL
         try {
           const { data: signedUrlData, error: signedUrlError } = await supabase.storage
@@ -309,7 +277,6 @@ const uploadToBackupLocation = async (fileData, filePath) => {
             };
           }
         } catch (e) {
-          logInfo(TAG, '创建签名URL失败:', e);
         }
         
         // 如果签名URL不可用，尝试公共URL
@@ -327,8 +294,6 @@ const uploadToBackupLocation = async (fileData, filePath) => {
     }
     
     // 所有存储桶都失败，返回本地URI作为临时解决方案
-    logInfo(TAG, '所有存储桶都上传失败，以Base64编码形式内联存储');
-    
     // 注意：这只是临时解决方案，Base64 URL仅适用于小文件
     return {
       path: null,
@@ -341,7 +306,6 @@ const uploadToBackupLocation = async (fileData, filePath) => {
       isDataUrl: true // 标记为数据URL
     };
   } catch (error) {
-    logError(TAG, '备用上传失败:', error);
     return { data: null, error, success: false };
   }
 };
@@ -362,8 +326,6 @@ export const playAudio = async (uri, onPlaybackStatusUpdate = null) => {
       };
     }
 
-    logInfo(TAG, '加载音频文件...', uri);
-    
     // 加载音频
     const { sound } = await Audio.Sound.createAsync(
       { uri },
@@ -377,7 +339,6 @@ export const playAudio = async (uri, onPlaybackStatusUpdate = null) => {
       error: null 
     };
   } catch (error) {
-    logError(TAG, '播放音频失败:', error);
     return { 
       sound: null, 
       success: false, 

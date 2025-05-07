@@ -123,13 +123,13 @@ npm run reset-project
 
 ### 日志控制
 
-本项目使用了`babel-plugin-transform-remove-console`插件自动移除生产环境中的控制台日志。在开发阶段可以正常使用`console.log`等语句辅助调试，打包时这些语句会被自动移除，提高应用性能和安全性。
+- 本项目原先使用了`babel-plugin-transform-remove-console`插件自动移除生产环境中的控制台日志。现已移除该插件，生产环境和开发环境的日志输出行为一致。
+- 如需管理日志输出，请使用`helpers/logHelper.js`中提供的日志辅助函数。
 
 ### 打包命令
 
 我们提供了以下打包命令，确保在打包时正确设置环境变量：
 
-```bash
 # 生产环境打包 (移除所有控制台日志)
 npm run build:android
 
@@ -138,7 +138,6 @@ npm run build:android:preview
 
 # 开发环境打包 (保留控制台日志)
 npm run build:android:dev
-```
 
 ### 验证构建模式
 

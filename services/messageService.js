@@ -56,14 +56,11 @@ export const getOrCreateConversation = async (user1Id, user2Id) => {
                         }
                     }
                     
-                    console.log('创建对话失败:', createError);
                     return { success: false, msg: createError.message };
                 }
                 
                 return { success: true, data: newConversation };
             } catch (insertError) {
-                console.log('对话插入失败:', insertError);
-                
                 // 插入失败后再次尝试查询（可能是并发创建导致的）
                 const { data: retryData } = await supabase
                     .from('conversations')
@@ -78,11 +75,9 @@ export const getOrCreateConversation = async (user1Id, user2Id) => {
                 return { success: false, msg: insertError.message };
             }
         } else {
-            console.log('查询对话失败:', error);
             return { success: false, msg: error.message };
         }
     } catch (error) {
-        console.log('对话操作失败:', error);
         return { success: false, msg: error.message };
     }
 };
@@ -104,7 +99,6 @@ export const sendMessage = async (conversationId, senderId, receiverId, content)
             .single();
         
         if (error) {
-            console.log('发送消息失败:', error);
             return { success: false, msg: error.message };
         }
         
@@ -116,7 +110,6 @@ export const sendMessage = async (conversationId, senderId, receiverId, content)
         
         return { success: true, data };
     } catch (error) {
-        console.log('发送消息失败:', error);
         return { success: false, msg: error.message };
     }
 };
@@ -132,8 +125,6 @@ export const sendMessage = async (conversationId, senderId, receiverId, content)
  */
 export const sendAudioMessage = async (conversationId, senderId, receiverId, audioUrl, durationMillis) => {
   try {
-    console.log('准备发送语音消息:', { conversationId, senderId, receiverId, audioUrl });
-    
     if (!audioUrl) {
       return { success: false, msg: '无效的音频文件' };
     }
@@ -153,8 +144,6 @@ export const sendAudioMessage = async (conversationId, senderId, receiverId, aud
       is_read: false,
     };
     
-    console.log('发送语音消息数据:', messageData);
-    
     // 使用管理员客户端插入消息记录，绕过权限限制
     const { data, error } = await adminSupabase
       .from('messages')
@@ -163,7 +152,6 @@ export const sendAudioMessage = async (conversationId, senderId, receiverId, aud
       .single();
     
     if (error) {
-      console.error('发送语音消息失败:', error);
       return { success: false, msg: error.message };
     }
     
@@ -179,7 +167,6 @@ export const sendAudioMessage = async (conversationId, senderId, receiverId, aud
       data
     };
   } catch (error) {
-    console.error('发送语音消息时发生错误:', error);
     return { success: false, msg: error.message || '未知错误' };
   }
 };
@@ -228,7 +215,6 @@ const sendMessageWithAltMethod = async (messageData, useLocal = false) => {
       useLocalFile: useLocal 
     };
   } catch (error) {
-    console.error('替代方法发送失败:', error);
     return { success: false, msg: '所有发送方法均失败' };
   }
 };
@@ -243,13 +229,11 @@ export const getConversationMessages = async (conversationId) => {
             .order('created_at');
         
         if (error) {
-            console.log('获取消息失败:', error);
             return { success: false, msg: error.message };
         }
         
         return { success: true, data: data || [] };
     } catch (error) {
-        console.log('获取消息失败:', error);
         return { success: false, msg: error.message };
     }
 };
@@ -265,7 +249,6 @@ export const getUserConversations = async (userId) => {
             .order('updated_at', { ascending: false });
         
         if (error) {
-            console.log('获取对话列表失败:', error);
             return { success: false, msg: error.message };
         }
         
@@ -290,7 +273,6 @@ export const getUserConversations = async (userId) => {
             .in('id', Array.from(userIds));
         
         if (usersError) {
-            console.log('获取用户信息失败:', usersError);
             return { success: false, msg: usersError.message };
         }
         
@@ -327,7 +309,6 @@ export const getUserConversations = async (userId) => {
         
         return { success: true, data: enrichedConversations };
     } catch (error) {
-        console.log('获取对话列表失败:', error);
         return { success: false, msg: error.message };
     }
 };
@@ -343,13 +324,11 @@ export const markMessagesAsRead = async (conversationId, userId) => {
             .eq('is_read', false);
         
         if (error) {
-            console.log('标记消息已读失败:', error);
             return { success: false, msg: error.message };
         }
         
         return { success: true };
     } catch (error) {
-        console.log('标记消息已读失败:', error);
         return { success: false, msg: error.message };
     }
 }; 

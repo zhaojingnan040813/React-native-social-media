@@ -303,7 +303,6 @@ const Conversation = () => {
       }, 1000);
       
     } catch (error) {
-      console.error('录音失败:', error);
       Alert.alert('错误', '开始录音时出现问题');
     }
   };
@@ -324,7 +323,7 @@ const Conversation = () => {
           await recordingInstance.stopAndUnloadAsync();
         }
       } catch (error) {
-        console.log('清理录音实例失败，可能已经被释放', error);
+        // 清理录音实例失败，可能已经被释放
       }
     }
     
@@ -349,8 +348,6 @@ const Conversation = () => {
     }
     
     try {
-      console.log('停止录音并准备发送...');
-      
       // 保存当前录音实例的引用，并立即清除状态中的引用
       const currentRecording = recordingInstance;
       setRecordingInstance(null);
@@ -360,7 +357,6 @@ const Conversation = () => {
       const result = await stopRecording(currentRecording);
       
       if (!result.success) {
-        console.log('录音停止失败:', result.error);
         Alert.alert('提示', result.error || '录音失败');
         setRecordingDuration(0);
         return;
@@ -407,12 +403,10 @@ const Conversation = () => {
       setSending(true);
       
       try {
-        console.log('开始上传音频文件...');
         const uploadResult = await uploadAudioFile(result.uri);
         
         if (!uploadResult.success) {
           // 上传失败
-          console.log('语音上传失败:', uploadResult.error);
           setMessages(prev => prev.map(msg => 
             msg.id === tempId 
               ? { ...msg, _sendFailed: true } 
@@ -424,10 +418,6 @@ const Conversation = () => {
           return;
         }
         
-        console.log('音频上传成功，准备发送消息...');
-        console.log('音频URL:', uploadResult.url);
-        console.log('音频时长:', result.durationMillis);
-        
         // 发送语音消息
         const response = await sendAudioMessage(
           conversationId,
@@ -437,11 +427,8 @@ const Conversation = () => {
           result.durationMillis
         );
         
-        console.log('发送语音消息响应:', response);
-        
         if (!response.success) {
           // 发送失败
-          console.log('发送语音消息失败:', response.msg);
           setMessages(prev => prev.map(msg => 
             msg.id === tempId 
               ? { ...msg, _sendFailed: true } 
@@ -450,12 +437,8 @@ const Conversation = () => {
           
           Alert.alert('提示', '发送语音失败: ' + response.msg);
         } else {
-          console.log('语音消息发送成功');
-          
           // 检查是否需要使用本地文件 (Response 中返回 useLocalFile 标志)
           if (response.useLocalFile === true) {
-            console.log('服务器建议使用本地文件播放，已保存本地URI');
-            
             // 更新消息，添加本地文件标记
             setMessages(prev => prev.map(msg => 
               msg.id === tempId
@@ -478,7 +461,6 @@ const Conversation = () => {
           }
         }
       } catch (uploadError) {
-        console.error('处理上传或发送过程中出错:', uploadError);
         setMessages(prev => prev.map(msg => 
           msg.id === tempId 
             ? { ...msg, _sendFailed: true } 
@@ -490,7 +472,6 @@ const Conversation = () => {
         setRecordingDuration(0);
       }
     } catch (error) {
-      console.error('停止录音过程中出错:', error);
       Alert.alert('错误', '处理语音消息时出现问题');
       setIsRecording(false);
       setRecordingDuration(0);
@@ -563,11 +544,6 @@ const Conversation = () => {
     if (item.type === 'audio') {
       // 优先使用标记的本地URI（如果有）
       const audioUri = item._useLocalUri ? item._localUri : item.media_url;
-      
-      // 日志跟踪
-      if (item._useLocalUri) {
-        console.log('使用本地URI播放音频:', item._localUri);
-      }
       
       return (
         <View style={styles.messageRow}>

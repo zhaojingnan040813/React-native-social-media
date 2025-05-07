@@ -6,9 +6,6 @@ module.exports = function (api) {
   
   return {
     presets: ['babel-preset-expo'],
-    plugins: [
-      // 只在生产环境移除控制台日志
-      isProd && 'transform-remove-console',
-    ].filter(Boolean),
+    plugins: [],
   };
 };

@@ -45,24 +45,20 @@ const AudioMessage = ({ audioUrl, duration, isCurrentUser, onPlayStateChange = (
       if (audioUrl && !audioUrl.startsWith('file://')) {
         // 先简单测试URL是否可访问
         try {
-          console.log('测试音频URL可访问性:', audioUrl);
           const response = await fetch(audioUrl, { method: 'HEAD' });
           
           if (!response.ok) {
-            console.log('音频URL无法访问, 状态码:', response.status);
             if (mounted) {
               // 如果URL无法访问，直接切换到演示模式
               setDemoMode(true);
               setError('无法访问音频（自动切换到演示模式）');
             }
           } else {
-            console.log('音频URL可以访问，尝试下载');
             if (mounted) {
               downloadAudioIfNeeded();
             }
           }
         } catch (error) {
-          console.error('测试音频URL失败:', error);
           if (mounted) {
             setDemoMode(true);
             setError('无法访问音频文件');
@@ -114,25 +110,19 @@ const AudioMessage = ({ audioUrl, duration, isCurrentUser, onPlayStateChange = (
       const fileName = `audio-${Date.now()}.m4a`;
       const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
       
-      console.log('下载音频文件:', audioUrl);
-      
       // 下载文件
       const downloadResult = await FileSystem.downloadAsync(
         audioUrl,
         fileUri
       );
       
-      console.log('音频下载结果:', downloadResult);
-      
       if (downloadResult.status === 200) {
         setLocalAudioUri(fileUri);
         setError(null);
       } else {
-        console.log('下载音频失败，状态码:', downloadResult.status);
         setError(`下载音频失败 (${downloadResult.status})`);
       }
     } catch (err) {
-      console.error('下载音频文件失败:', err);
       setError('下载音频失败');
     }
   };
@@ -154,7 +144,6 @@ const AudioMessage = ({ audioUrl, duration, isCurrentUser, onPlayStateChange = (
         onPlayStateChange(false);
       }
     } else if (status.error) {
-      console.error(`音频播放错误: ${status.error}`);
       setError(`播放失败: ${status.error}`);
       setIsPlaying(false);
       setIsLoading(false);
@@ -281,7 +270,6 @@ const AudioMessage = ({ audioUrl, duration, isCurrentUser, onPlayStateChange = (
         
         // 选择最佳的URI来源
         const bestAudioUri = localAudioUri || audioUrl;
-        console.log('使用音频源:', bestAudioUri);
         
         try {
           // 加载音频
@@ -296,11 +284,8 @@ const AudioMessage = ({ audioUrl, duration, isCurrentUser, onPlayStateChange = (
           setIsLoading(false);
           onPlayStateChange(true);
         } catch (loadError) {
-          console.error('播放音频失败:', loadError);
-          
           // 如果使用本地缓存失败，尝试直接使用原始URL
           if (localAudioUri && bestAudioUri !== audioUrl) {
-            console.log('本地缓存播放失败，尝试直接使用原始URL');
             
             const { sound: fallbackSound } = await Audio.Sound.createAsync(
               { uri: audioUrl },
@@ -318,7 +303,6 @@ const AudioMessage = ({ audioUrl, duration, isCurrentUser, onPlayStateChange = (
         }
       }
     } catch (error) {
-      console.error('播放音频失败:', error);
       setError(`无法播放语音: ${error.message}`);
       setIsLoading(false);
       onPlayStateChange(false);
